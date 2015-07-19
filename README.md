@@ -10,6 +10,7 @@ The ExDOS kernel is the core of the ExDOS operating system. It carries out the b
 Features
 ========
 - Boots in less than 5 seconds on most hardware.
+- Ring 3 protection.
 - ACPI (with shutdown!)
 - PCI driver.
 - PS/2 keyboard driver.
