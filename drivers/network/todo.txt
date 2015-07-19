@@ -1,0 +1,4 @@
+TO-DO: Write drivers for these Ethernet cards:
+- RTL8139 (for QEMU)
+- NE2000 (for Bochs)
+
