@@ -23,6 +23,7 @@ Features
 
 TO-DO
 =====
+- Port OS to x86_64 while remaining compatible with 32-bit applications and drivers.
 - Finish the v8086 monitor.
 - Driver interface.
 - IDE ATA driver.
