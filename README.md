@@ -36,7 +36,7 @@ TO-DO
 
 Requirements
 ============
-- **CPU:** Intel Pentium with SSE or better, or AMD equivalent.
+- **CPU:** Intel Pentium II with SSE or better, or AMD equivalent.
 - **RAM:** 32 MB.
 - **Graphics:** VESA 2.0-compatible BIOS, with at ~2 MB of VGA RAM (for 640x480x32bpp.)
 - **PS/2 keyboard.**
