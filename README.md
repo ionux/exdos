@@ -1,7 +1,3 @@
-ExDOS Kernel
-============
-Extensible Disk Operating System Kernel
-
 What is ExDOS?
 ==============
 ExDOS is a 32-bit hobbyist operating system written entirely in assembly language for the x86. Although the name may imply it is a DOS-like system, ExDOS is not DOS-like. Unlike DOS, it doesn't support segmentation, and it supports virtual memory, memory management and ring 3 protection.  
