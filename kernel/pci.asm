@@ -175,77 +175,6 @@ pci_write_dword:
 .slot				db 0
 .offset				db 0
 
-; pci_get_device:
-; Returns the bus and device number of a specified PCI device
-; In\	AH = Class code
-; In\	AL = Subclass code
-; Out\	AL = Bus number (0xFF if invalid)
-; Out\	AH = Device number (0xFF if invalid)
-; Out\	BL = Function number (0xFF if invalid)
-
-pci_get_device:
-	mov byte[.bus], 0
-	mov byte[.device], 0
-	mov byte[.function], 0
-	mov [.class], ax
-
-.search:
-	mov al, [.bus]
-	mov ah, [.device]
-	mov bl, [.function]
-	mov bh, 8
-	call pci_read_dword
-
-	cmp eax, 0xFFFFFFFF
-	je .next_device
-
-	shr eax, 16
-
-	cmp ax, word[.class]
-	je .found_device
-
-	add byte[.function], 1
-	cmp byte[.function], 0xFF
-	je .next_device
-
-	jmp .search
-
-.next_device:
-	mov byte[.function], 0
-	add byte[.device], 1
-	cmp byte[.device], 0xFF
-	je .next_bus
-
-	jmp .search
-
-.next_bus:
-	mov byte[.device], 0
-	add byte[.bus], 1
-	cmp byte[.bus], 0xFF
-	je .device_not_found
-
-	jmp .search
-
-.found_device:
-	mov al, [.bus]
-	mov ah, [.device]
-	mov bl, [.function]
-	and eax, 0xFFFF
-	and ebx, 0xFF
-
-	ret
-
-.device_not_found:
-	mov eax, 0xFFFF
-	mov ebx, 0xFF
-
-	ret
-
-.class				dw 0
-.bus				db 0
-.device				db 0
-.function			db 0
-
 ; pci_set_irq:
 ; Sets the IRQ to be used by a PCI device
 ; In\	AL = Bus number
@@ -280,6 +209,88 @@ pci_set_irq:
 .function			db 0
 .irq				db 0
 
+; pci_get_device:
+; Gets the bus and device number of a PCI device from the class codes
+; In\	AH = Class code
+; In\	AL = Subclass code
+; In\	BL = Prog IF
+; Out\	AL = Bus number (0xFF if invalid)
+; Out\	AH = Device number (0xFF if invalid)
+; Out\	BL = Function number (0xFF if invalid)
+
+pci_get_device:
+	mov [.class], ax
+	mov [.prog_if], bl
+
+	mov byte[.bus], 0
+	mov byte[.device], 0
+	mov byte[.function], 0
+
+.find_device:
+	; Now, we'll search every function of every device on every bus
+	; This does have a slight performance penalty, but we usually search for PCI device on bootup and driver initialization only.
+	; So it's no problem. :)
+
+	mov al, [.bus]
+	mov ah, [.device]
+	mov bl, [.function]
+	mov bh, 8
+	call pci_read_dword
+
+	mov [.tmp], eax
+	mov eax, [.tmp]
+	shr eax, 8
+
+	cmp al, byte[.prog_if]		; correct Prog IF?
+	jne .next
+
+	mov eax, [.tmp]
+
+	shr eax, 16
+	cmp ax, word[.class]		; correct class?
+	jne .next
+
+	; if we make it here, we've found the correct device
+	mov al, [.bus]
+	mov ah, [.device]
+	mov bl, [.function]
+	and eax, 0xFFFF
+	and ebx, 0xFF
+
+	ret
+
+.next:
+	add byte[.function], 1
+	cmp byte[.function], 0xFF
+	je .next_device
+	jmp .find_device
+
+.next_device:
+	mov byte[.function], 0
+	add byte[.device], 1
+	cmp byte[.device], 0xFF
+	je .next_bus
+	jmp .find_device
+
+.next_bus:
+	mov byte[.device], 0
+	add byte[.bus], 1
+	cmp byte[.bus], 0xFF
+	je .device_not_found
+	jmp .find_device
+
+.device_not_found:
+	; if we make it here, then such device doesn't exist.
+	mov eax, 0xFFFF
+	mov ebx, 0xFF
+	ret
+
+.class				dw 0
+.prog_if			db 0
+.tmp				dd 0
+.bus				db 0
+.device				db 0
+.function			db 0
 
 
 

@@ -30,7 +30,7 @@ run_v8086:
 	push ebp		; ESP, and fix stack
 	pushfd
 	pop ebp
-	or ebp, 0x20202		; EFLAGS = v8086 | interrupts
+	or ebp, 0x20202		; EFLAGS = v8086 | interrupts | parity
 	push ebp
 	push 0			; CS = 0
 	lea ebp, [.next]
@@ -47,7 +47,7 @@ use16			; we're in v8086 mode now! :)
 	mov fs, ax
 	mov gs, ax
 
-	;out dx, al		; for debugging
+	out dx, al
 
 	jmp $
 
