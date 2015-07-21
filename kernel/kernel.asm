@@ -19,7 +19,7 @@ org 0x500
 
 jmp 0:kmain16
 
-define TODAY "Friday, 17th July, 2015"
+define TODAY "Tuesday, 21st July, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _copyright			db "(C) by Omar Mohammad",0
@@ -162,7 +162,7 @@ kmain32:
 
 	pushfd
 	pop eax
-	and eax, 0xFFFFCFFF			; only the kernel can do CLI/STI 
+	and eax, 0xFFFFCFFF			; prevent v8086 from doing CLI/STI, and only the kernel can do IN/OUT
 	push eax
 	popfd
 
@@ -218,8 +218,6 @@ use32
 	mov esi, bootlogo
 	mov edi, 0x2000000
 	call load_file
-
-	;jmp $					; for debugging...
 
 	cmp eax, 0
 	jne .continue_booting
