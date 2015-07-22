@@ -26,7 +26,8 @@ ahci_init:
 
 	; First, let's scan the PCI bus for an AHCI controller
 	mov ah, 1		; mass storage device
-	mov al, 6		; SATA (AHCI 1.0) controller
+	mov al, 6		; SATA controller
+	mov bl, 1		; AHCI interface
 	call pci_get_device
 
 	cmp ax, 0xFFFF
