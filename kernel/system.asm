@@ -585,6 +585,8 @@ init_sse:
 	mov edx, 0xDEDEDE
 	call print_string_transparent
 
+	jmp $
+
 .no_sse_msg				db "Boot error: This CPU doesn't support SSE: Streaming SIMD extensions.",0
 
 use32

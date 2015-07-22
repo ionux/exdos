@@ -274,8 +274,6 @@ use32
 	cmp eax, 0
 	jne .init_missing
 
-	;call run_v8086				; for debugging...
-
 	call enter_ring3			; NEVER EVER let programs run in ring0! 
 	jmp 0x1000000
 

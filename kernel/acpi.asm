@@ -340,6 +340,27 @@ init_acpi_power:
 
 	; Now, to shutdown, we just need to do:
 	; outportw(FADT.pm1a_control_block, SLP_EN | SLP_TYPa);
+
+	mov ax, [acpi_fadt.sci_interrupt]
+	cmp ax, 7
+	jle .master_pic
+
+	cmp ax, 8
+	jge .slave_pic
+
+.master_pic:
+	add ax, 32			; we remapped IRQ0-7 to IDT entries 32-47
+	mov ebp, acpi_irq
+	call install_isr
+
+	ret
+
+.slave_pic:
+	sub ax, 8
+	add ax, 0x70
+	mov ebp, acpi_irq
+	call install_isr
+
 	ret
 
 .checksum_error:
@@ -401,6 +422,29 @@ acpi_slp_typb			dw 0
 acpi_slp_en			dw 0
 acpi_shutdown_port		dw 0
 acpi_shutdown_word		dw 0
+
+; acpi_irq:
+; ACPI IRQ handler
+
+acpi_irq:
+	mov ax, 0x10
+	;mov ss, ax		; the TSS should have already done this for us
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	; just for debugging, set text mode and display a letter X and halt
+	call text_mode
+
+	mov edi, 0xB8000
+	mov al, 'x'
+	stosb
+	mov al, 0x70
+	stosb
+
+	cli
+	hlt
 
 ; acpi_shutdown:
 ; Shuts down the system using ACPI

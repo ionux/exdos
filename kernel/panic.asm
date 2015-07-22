@@ -233,10 +233,29 @@ bound_error:
 .msg				db "BOUND error.",0
 
 opcode_error:
+	mov byte[draw_panic_screen.custom_exception], 1
 	mov esi, .msg
 	call draw_panic_screen
 
+	mov byte[x_cur], 4
+	mov byte[y_cur], 17
+
+	mov esi, .error_info
+	mov ecx, 0x7F
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
+	pop eax
+	call hex_dword_to_string
+	mov ecx, 0x7F
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
+	call get_char_wait
+	call reboot
+
 .msg				db "Invalid opcode error.",0
+.error_info			db "EIP: ",0
 
 device_error:
 	mov esi, .msg
