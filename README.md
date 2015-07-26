@@ -15,7 +15,6 @@ Features
 - Basic graphical routines (lines, squares, bitmap fonts, alpha blending, ...)
 - Physical/virtual memory management.
 - Custom file system.
-- Custom program executable format.
 
 TO-DO
 =====
