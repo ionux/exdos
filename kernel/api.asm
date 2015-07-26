@@ -12,9 +12,7 @@
 
 use32
 
-os_api_return				dd 0
-os_api_eflags				dd 0
-os_api_esp				dd 0
+os_api_max_function		= 25
 
 ; os_api:
 ; Kernel API Entry Point
@@ -23,120 +21,112 @@ os_api_esp				dd 0
 ; Out\	All registers = Depends on function output
 
 os_api:
-	pop ebp
-	add ebp, 2
-	mov [os_api_return], ebp
-	pop ebp				; CS
-	pop ebp				; EFLAGS
-	mov [os_api_eflags], ebp
-	pop ebp				; ESP
-	mov [os_api_esp], ebp
-	pop ebp
+	pusha
+	call enter_ring0		; ensure the API runs in ring 0
+	popa
 
-	sti
+	pusha
+	cmp eax, os_api_max_function
+	jg .bad
+	popa
 
-	cmp eax, max_call
-	jg .bad_call
-
-	push ebx
-	push edi
+	pusha
 	mov ebx, 4
 	mul ebx
-	mov edi, api_call_table
+	mov edi, os_api_table
 	add edi, eax
 	mov eax, dword[edi]
-	pop edi
-	pop ebx
+	mov [.tmp], eax
+	popa
+	mov eax, [.tmp]
 
 	call eax
 
-	jmp os_api_quit
+	pusha
+	call enter_ring3		; ensure we continue execution in user mode
+	popa
+	ret
 
-.bad_call:
+.bad:
+	popa
+	call enter_ring3
 	mov eax, 0xBADFBADF
-	jmp os_api_quit
+	ret
 
-; os_api_quit:
-; Quits from an API call
+.tmp			dd 0
 
-os_api_quit:
-	mov ebp, [os_api_eflags]
-	or ebp, 0x202
-	push ebp
-	popfd
+; os_api_table:
+; Call table for API functions
 
-	mov ecx, [os_api_esp]
-	mov edx, .next
-	sysexit				; SYSEXIT is easier than IRET, and doesn't require TSS and shit like that
-
-.next:
-	mov bp, 0x23
-	mov ds, bp
-	mov es, bp
-	mov fs, bp
-	mov gs, bp
-
-	mov ebp, [os_api_eflags]
-	or ebp, 0x202			; enable interrupts
-	push ebp
-	popfd
-
-	mov ebp, [os_api_return]
-	jmp ebp
-
-; api_call_table:
-; Lookup table for kernel API
-
-api_call_table:
-	dd terminate_program
+os_api_table:
+	; Core routines
 	dd execute_program
+	dd mem_info
 	dd kernel_info
-	dd system_info
+	dd 0			; TO-DO: This should be run_v8086, but when v8086 monitor is completed...
+
+	; Display routines
 	dd clear_screen
-	dd .print_string_graphics_cursor
-	dd print_string_transparent
+	dd print_string_graphics_cursor
 	dd print_string_graphics
+	dd print_string_transparent
 	dd move_cursor_graphics
+	dd put_pixel
+	dd draw_horz_line
+	dd fill_rect
+	dd alpha_draw_horz_line
+	dd alpha_fill_rect
+	dd alpha_blend_colors
+	dd draw_image
+
+	; Keyboard routines
 	dd get_char_wait
 	dd get_char_no_wait
 	dd get_string_echo
+
+	; String-based routines
 	dd get_string_size
+	dd chomp_string
+	dd int_to_string
+	dd hex_byte_to_string
+	dd hex_word_to_string
+	dd hex_dword_to_string
 	dd compare_strings
 
-.print_string_graphics_cursor:
-	mov edx, ebx
-	call print_string_graphics_cursor
+; mem_info:
+; Gets memory information
+; In\	Nothing
+; Out\	EAX = Total memory in KB
+; Out\	EBX = Free memory in KB
+; Out\	ECX = Used memory in KB
+
+mem_info:
+	mov eax, [free_memory]
+	mov ebx, 4
+	mul ebx
+	mov [.free], eax
+	mov eax, [used_memory]
+	mov ebx, 4
+	mul ebx
+	mov [.used], eax
+	mov eax, [total_memory_kb]
+	mov ebx, [.free]
+	mov ecx, [.used]
 
 	ret
 
-max_call			= 0x0D
+.used			dd 0
+.free			dd 0
 
 ; kernel_info:
-; Gets basic kernel information
+; Gets kernel information
 ; In\	Nothing
-; Out\	EAX = Kernel API version
 ; Out\	ESI = Kernel version string
+; Out\	EAX = API version
 
 kernel_info:
-	mov eax, api_version
 	mov esi, _kernel_version
+	mov eax, [_api_version]
 
 	ret
-
-; system_info:
-; Gets basic system information
-; In\	Nothing
-; Out\	AX = Screen width
-; Out\	BX = Screen height
-; Out\	ECX = Total memory in 4 KB blocks
-; Out\	EDX = Used memory in 4 KB blocks
-
-system_info:
-	mov ax, [syswidth]
-	mov bx, [sysheight]
-	mov ecx, [total_memory]
-	mov edx, [used_memory]
-
-	ret
-
 

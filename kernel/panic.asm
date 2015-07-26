@@ -301,36 +301,12 @@ gpf_error:
 
 	pop ebp
 	push ebp
-	mov [.return], ebp
-	cmp word[ebp], 0x5FCD		; INT 0x5F (user API)
-	je .api
-
-	;cmp word[ebp], 0x6FCD		; INT 0x6F (driver API)
-	;je .driver
+	mov [ss:.return], ebp
 
 	mov esi, .msg
 	call draw_panic_screen
 
 .msg				db "General protection fault.",0
-
-.api:
-	mov bp, 0x10
-	mov ds, bp
-	mov es, bp
-	mov fs, bp
-	mov gs, bp
-
-	jmp os_api
-
-.driver:
-	mov bp, 0x10
-	mov ds, bp
-	mov es, bp
-	mov fs, bp
-	mov gs, bp
-
-	jmp driver_api
-
 .return				dd 0
 
 page_error:

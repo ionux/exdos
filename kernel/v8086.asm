@@ -16,7 +16,7 @@ v8086_running			db 0
 
 ; run_v8086:
 ; Runs some 16-bit code
-; In\	EAX = Code offset (must be below 1 MB!)
+; In\	EAX = Code offset (must be below 1 MB)
 ; Out\	Nothing
 
 run_v8086:
@@ -30,7 +30,7 @@ run_v8086:
 	push ebp		; ESP, and fix stack
 	pushfd
 	pop ebp
-	or ebp, 0x20202		; EFLAGS = v8086 | interrupts | parity
+	or ebp, 0x20202		; EFLAGS = v8086 | interrupts
 	push ebp
 	push 0			; CS = 0
 	lea ebp, [.next]
@@ -101,17 +101,38 @@ v8086_gpf_handler:
 ; Returns from the v8086 GPF handler
 
 v8086_gpf_return:
-	
+	mov eax, [v8086_gpf_handler.ss]
+	push eax
+	mov eax, [v8086_gpf_handler.esp]
+	push eax
+	mov eax, [v8086_gpf_handler.eflags]
+	push eax
+	mov eax, [v8086_gpf_handler.cs]
+	push eax
+	mov eax, [v8086_gpf_handler.return]
+	push eax
+
+	iretd
 
 ; v8086_do_cli:
 ; Emulates a CLI instruction
 
 v8086_do_cli:
-	pushfd
-	pop eax
-	;and eax, 
+	mov eax, [v8086_gpf_handler.eflags]
+	and eax, 0xFFFFFDFF			; clear IF flag
+	or eax, 2
+	mov [v8086_gpf_handler.eflags], eax
+	add dword[v8086_gpf_handler.return], 1	; CLI instruction is 1 byte in size
+
+	jmp v8086_gpf_return
 
 v8086_do_sti:
+	mov eax, [v8086_gpf_handler.eflags]
+	or eax, 0x202
+	mov [v8086_gpf_handler.eflags], eax
+	add dword[v8086_gpf_handler.return], 1
+
+	jmp v8086_gpf_return
 
 ; v8086_do_int:
 ; Raises an interrupt in v8086 mode
@@ -130,14 +151,19 @@ v8086_do_int:
 	mov [.offset], ax
 	mov [.segment], bx
 
+	add dword[v8086_gpf_handler.return], 2		; INT XX is two bytes in size
+
 	mov eax, [v8086_gpf_handler.ss]
 	push ax
-	push sp
+	mov ax, sp
+	add ax, 24					; clean up stack
+	push ax
 	pushf
 	mov eax, [v8086_gpf_handler.cs]
 	push ax
 	mov eax, [v8086_gpf_handler.return]
 	push ax
+
 
 
 	jmp $

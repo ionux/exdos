@@ -54,6 +54,19 @@ init_kbd:
 	call set_keyboard_leds
 
 	call wait_ps2_write
+	mov al, 0xF3
+	out 0x60, al
+
+	call wait_ps2_read
+	in al, 0x60
+
+	mov al, 0
+	out 0x60, al
+
+	call wait_ps2_read
+	in al, 0x60
+
+	call wait_ps2_write
 	mov al, 0xF4
 	out 0x60, al
 
@@ -61,7 +74,6 @@ init_kbd:
 	in al, 0x60
 
 	ret
-
 
 ; set_keyboard_leds:
 ; Sets the LED lights on the keyboard

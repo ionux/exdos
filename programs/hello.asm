@@ -1,49 +1,23 @@
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;									;;
-;; ExDOS -- Extensible Disk Operating System				;;
-;; Version 0.1 pre alpha						;;
-;; Copyright (C) 2015 by Omar Mohammad, all rights reserved.		;;
-;;									;;
-;; programs/hello.asm							;;
-;; Sample Hello World Program						;;
-;;									;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Hello World Program for ExDOS
+;; Assembly-language style
+;;
 
 use32
-org 0x8000000			; programs are loaded to 128 MB
+org 0x8000000
 
-beginning_of_file:
-
-exdos_program_header:
-	.magic			db "ExDOS"				; must be ExDOS
-	.version		db 1					; version 1
-	.type			db 0					; 0 program, 1 driver
-	.program_size		dd end_of_file - beginning_of_file	; size of program
-	.entry_point		dd main					; entry point address
-	.manufacturer		dd manufacturer				; program manufacturer
-	.program_name		dd program_name				; program name
-	.driver_type		dw 0					; reserved for drivers (should be class code of PCI device)
-	.driver_hardware	dd 0					; reserved for drivers (should be model name of the hardware)
-	.reserved		dd 0					; reserved for future expansion
-
-manufacturer			db "Omar Mohammad",0
-program_name			db "Hello world program",0
+include			"programs/kapi.asm"
 
 main:
-	mov eax, 5		; Print string at cursor position function
-	mov esi, string		; ESI = String location
-	mov ebx, 0xFFFFFF	; EBX = Foreground color
-	mov edx, 0		; EDX = Background color
-	int 0x5F		; Kernel API
+	mov esi, string
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
 
-	mov eax, 0		; Terminate program
-	mov ebx, 0		; EBX = Exit code
-	int 0x5F		; Kernel API
+	ret
 
-string				db "Hello, world! :)",13,10,0
+string			db "Hello, world!",13,10
+			db "If you're reading this, then you're running an assembly program for ExDOS! :)",13,10,0
 
-align 4096			; program size *must* be a multiple of 4096 (page-aligned)
-
-end_of_file:
 

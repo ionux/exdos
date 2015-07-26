@@ -19,9 +19,17 @@ org 0x500
 
 jmp 0:kmain16
 
+use32
+align 32
+
+jmp os_api
+
+use16
+
 define TODAY "Tuesday, 21st July, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
+_api_version			dd 1
 _copyright			db "(C) by Omar Mohammad",0
 _crlf				db 13,10,0
 
@@ -274,7 +282,7 @@ use32
 	cmp eax, 0
 	jne .init_missing
 
-	call enter_ring3			; NEVER EVER let programs run in ring0! 
+	call enter_ring3			; NEVER EVER let programs run in ring 0!
 	jmp 0x1000000
 
 .init_missing:
@@ -333,18 +341,13 @@ align 32
 stack_area:			rb stack_size			; 8 KB of stack space
 				rq 1				; and an extra QWORD, just in case ;)
 
-align 4096
-
-ustack_area:			rb stack_size
-				rq 1
-
 align 32
 
-memory_map:			rq 128				; 1 KB of space for E820 memory map
+memory_map:			rq 64				; 1 KB of space for E820 memory map
 
 align 4096
 
-page_directory:			rd 1025
+page_directory			= 0x70000
 
 page_table			= 0x100000			; page table takes up 4 MB of RAM
 								; it can't be located in low memory
@@ -353,11 +356,6 @@ end_of_page_table		= 0x500000
 
 pmm_table			= 0x600000
 end_of_pmm_table		= 0x700000
-
-align 32
-
-ata_identify_structure:		rw 256
-end_of_ata_identify_structure:
 
 align 32
 

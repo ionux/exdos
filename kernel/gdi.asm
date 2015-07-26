@@ -537,6 +537,7 @@ print_string_graphics_cursor:
 
 .newline:
 	add byte[y_cur], 1
+	mov byte[x_cur], 0
 
 	mov al, [y_cur_max]
 	cmp byte[y_cur], al

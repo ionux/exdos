@@ -609,7 +609,7 @@ bcd_to_int:
 	mul ebx
 	mov bx, [.tmp2]
 	add ax, bx
-	and ax, 0xFF
+	and eax, 0xFF
 
 	ret
 
@@ -641,6 +641,36 @@ delay_execution:
 	popfd
 	ret
 
+; rand:
+; Generates a random number between a specified range
+; In\	ECX = Low range
+; In\	EDX = High range
+; Out\	EAX = Random number
+
+rand:
+	mov [.low], ecx
+	mov [.high], edx
+
+	mov eax, [.high]
+	mov ebx, [.low]
+	sub eax, ebx
+	mov [.range], eax
+
+	mov eax, [ticks]
+	shl eax, 8
+	mov ebx, [.range]
+	mov edx, 0
+	div ebx
+
+	add edx, dword[.low]
+	mov eax, edx
+
+	ret
+
+.range			dd 0
+.low			dd 0
+.high			dd 0
+
 ; gdt:
 ; Global Descriptor Table
 
@@ -665,7 +695,7 @@ gdt:
 	db 11001111b
 	db 0
 
-	; program code segment 0x18
+	; user code segment 0x18
 	dw 0xFFFF				; limit low
 	dw 0					; base low
 	db 0					; base middle
@@ -673,7 +703,7 @@ gdt:
 	db 11001111b				; flags and limit high
 	db 0
 
-	; program data segment 0x20
+	; user data segment 0x20
 	dw 0xFFFF
 	dw 0
 	db 0
@@ -703,7 +733,7 @@ gdt_tss:
 	dw 0
 	db 0
 	db 11101001b
-	db 00000000b
+	db 0
 	db 0
 
 end_of_gdt:

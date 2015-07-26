@@ -32,7 +32,7 @@ reboot:
 ; Shuts down the PC
 
 shutdown:
-	; dim the display
+	; dim the display and print "It's now safe to power off."
 	mov ebx, 0
 	mov cx, 0
 	mov dx, 0
@@ -54,10 +54,6 @@ shutdown:
 	mov edi, [screen.height]
 	call alpha_fill_rect
 
-	call apm_shutdown		; try APM BIOS shutdown
-	call acpi_shutdown		; if that didn't work, try ACPI shutdown
-
-	; if shutdown failed, print "It's now safe to power-off your PC." message
 	call get_screen_center
 	sub bx, 139
 	sub cx, 7
@@ -71,6 +67,9 @@ shutdown:
 	mov edx, 0xEFEFEF
 	mov esi, .safe_msg
 	call print_string_transparent
+
+	call apm_shutdown		; try APM BIOS shutdown
+	call acpi_shutdown		; if that didn't work, try ACPI shutdown
 
 	sti
 

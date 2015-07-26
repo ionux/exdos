@@ -163,8 +163,7 @@ sysenter_main:
 .custom:
 	mov byte[sysenter_custom], 0
 	mov eax, [sysenter_return]
-	push eax
-	ret
+	jmp eax
 
 sysenter_custom			db 0
 sysenter_return			dd 0
@@ -196,24 +195,26 @@ enter_ring3:
 	mov fs, ax
 	mov gs, ax
 
-	push 0x23
-	mov eax, esp
-	push eax
 	pushfd
 	pop eax
 	or eax, 0x202
 	push eax
-	push 0x1B
-	lea eax, [.next]
-	push eax
+	popfd
 
-	iretd
+	mov ecx, esp
+	mov edx, .next
+	sysexit
 
 .next:
-	mov eax, [.return]
+	pushfd
+	pop eax
+	or eax, 0x202
 	push eax
-	ret
-	
+	popfd
+
+	mov eax, [.return]
+	jmp eax
+
 .return				dd 0
 
 running_program			dd 0
@@ -243,122 +244,65 @@ program_header_size		= $ - program_header
 ; In\	ESI = Program path with parameters
 ; In\	EBX = Program return address
 ; Out\	EAX = Program exit code
-; Out\	EBX = 0 on success, 0xDEADC0DE if program is corrupted, 0xDEADBEEF is program doesn't exist, 0xFEFE if not enough memory
+; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist
 
 execute_program:
-	mov [program_return], ebx
 	mov [program_name], esi
-
-	mov [program_return_stack], ebp
-	add dword[program_return_stack], 24	; fix stack
-
 	mov esi, [program_name]
-	mov edi, disk_buffer
-	call load_file				; load program to a temporary location
+	mov edi, 0x40000
+	call load_file
 
 	cmp eax, 0
-	jne .file_not_found
+	jne .not_found
 
-	mov esi, disk_buffer
-	mov edi, program_header
-	mov ecx, program_header_size
-	rep movsb
-
-	mov esi, disk_buffer
-	mov edi, .program_magic
-	mov ecx, 5
-	rep cmpsb
-	jne .corrupted
-
-	mov eax, [program_header.program_size]
-	test eax, 0xFFF				; make sure program size is a multiple of 4096
-	jnz .corrupted
-
-	cmp byte[program_header.type], 0	; make sure we're executing a program and not a driver
-	jne .corrupted
-
-	cmp byte[program_header.version], 1	; until I think of something else, I only have one version of the executable format
-	jne .corrupted
-
-	mov eax, [program_header.program_size]
-	mov edx, 0
+	mov [.size], ecx
+	mov eax, [.size]
 	mov ebx, 1024
-	div ebx
-
 	mov edx, 0
+	div ebx
 	mov ebx, 4
+	mov edx, 0
 	div ebx
 
-	mov [program_blocks], eax		; program size in 4 KB blocks
+	add eax, 4
+	mov [program_blocks], eax
 
-	mov ecx, [program_blocks]
 	mov eax, 0x1400000
-	call pmm_find_free_block		; find a free memory block
-	jc .no_memory
+	mov ecx, [program_blocks]
+	call pmm_find_free_block
+	jc out_of_memory
 
-	mov [program_phys_location], eax
-
-	mov eax, [program_phys_location]
 	mov ebx, 0x8000000
 	mov ecx, [program_blocks]
 	mov edx, 7
 	call vmm_map_memory
 
-	mov esi, disk_buffer
+	mov esi, 0x40000
 	mov edi, 0x8000000
-	mov ecx, [program_header.program_size]
-	rep movsb				; copy program to virtual address 128 MB
+	mov ecx, [.size]
+	rep movsb
 
 	mov byte[is_program_running], 1
+
 	call enter_ring3
+	call 0x8000000
 
-	add esp, 24				; clean stack
-	mov ebp, [program_header.entry_point]
-	jmp ebp
+.return:
+	;jmp $			; for debugging...
+	call enter_ring0
 
-.no_memory:
-	mov ebx, 0xFEFE
+	mov byte[is_program_running], 0
+	mov eax, ebx
+	mov ebx, 0
 	ret
 
-.corrupted:
-	mov ebx, 0xDEADC0DE
-	ret
-
-.file_not_found:
+.not_found:
+	mov byte[is_program_running], 0
+	mov eax, 0
 	mov ebx, 0xDEADBEEF
 	ret
 
-.program_magic			db "ExDOS"
+.size				dd 0
 
-; terminate_program:
-; Terminates a running program
-; In\	EBX = Exit code
-; Out\	Nothing
-
-terminate_program:
-	mov [.exit_code], ebx
-
-	; First, let's free the memory used by the program so that other programs can use it
-	mov eax, 0x8000000
-	mov ecx, [program_blocks]
-	call vmm_unmap_memory			; free the virtual memory
-
-	mov eax, [program_phys_location]
-	mov ecx, [program_blocks]
-	call pmm_free_memory			; free physical memory too
-
-	mov byte[is_program_running], 0
-
-	call enter_ring3
-
-	mov ebp, [program_return_stack]
-	mov esp, ebp
-	mov ebp, [program_return]
-
-	mov eax, [.exit_code]
-	mov ebx, 0
-	jmp ebp
-
-.exit_code				dd 0
 
 
