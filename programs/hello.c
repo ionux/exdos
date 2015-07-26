@@ -7,6 +7,8 @@
 int main() {
 	printf("Hello, world! :)\n");
 	printf("If you're reading this, then you're running a C program on ExDOS! :)\n");
+
+	return 0;
 }
 
 

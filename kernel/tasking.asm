@@ -292,7 +292,7 @@ execute_program:
 	call enter_ring0
 
 	mov byte[is_program_running], 0
-	mov eax, ebx
+	;mov eax, ebx		; C/C++ returns exit codes in EAX
 	mov ebx, 0
 	ret
 
