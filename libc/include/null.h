@@ -7,6 +7,7 @@
 #define __NULL_H
 
 #define null 0
+#define NULL 0
 
 #endif
 
