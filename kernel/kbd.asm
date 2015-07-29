@@ -329,8 +329,6 @@ ascii_codes_shift_caps_lock:
 ; Out\	AH = ASCII scancode
 
 get_char_no_wait:
-	sti
-	hlt
 	mov al, [last_character]
 	mov ah, [last_scancode]
 
@@ -344,9 +342,10 @@ get_char_no_wait:
 
 get_char_wait:
 	sti
-	cmp byte[last_character], 0
 	hlt					; halting saves energy and cools down the CPU
 						; it also speeds up some emulators like Bochs
+
+	cmp byte[last_character], 0
 	je get_char_wait
 
 	mov al, byte[last_character]
