@@ -25,6 +25,16 @@ kdebug_init:
 	mov eax, 0
 	rep stosb
 
+	mov eax, kdebugger_location
+	mov ebx, kdebugger_location
+	mov ecx, 32
+	mov edx, 5				; user, present, read-only
+	call vmm_map_memory
+
+	mov eax, cr0
+	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
+	mov cr0, eax
+
 	mov esi, _kernel_version
 	call kdebug_print_noprefix
 
