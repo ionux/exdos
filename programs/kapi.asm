@@ -35,7 +35,7 @@ draw_image			= 15
 ; Keyboard routines
 get_char_wait			= 16
 get_char_no_wait		= 17
-get_string_echo			= 18
+get_string			= 18
 
 ; String-based routines
 get_string_size			= 19
@@ -45,6 +45,10 @@ hex_byte_to_string		= 22
 hex_word_to_string		= 23
 hex_dword_to_string		= 24
 compare_strings			= 25
+
+; Power-based routines
+reboot				= 26
+shutdown			= 27
 
 macro os_api function_number {
 	mov eax, function_number

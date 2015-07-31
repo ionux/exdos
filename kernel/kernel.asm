@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Tuesday, 21st July, 2015"
+define TODAY "Friday, 31st July, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1
@@ -174,6 +174,7 @@ kmain32:
 	push eax
 	popfd
 
+	call kdebug_init			; initialize kernel debugger
 	call init_exceptions			; we should install exceptions handlers before anything, just to be safe
 	call remap_pic				; remap IRQ 0-15 to INT 32-47
 	call pmm_init				; initalize physical memory manager
@@ -212,10 +213,10 @@ use16
 use32
 
 .draw_boot_screen:
-	call init_hdd				; initialize hard disk
-
 	mov ebx, 0xC0C0C0
 	call clear_screen
+
+	call init_hdd				; initialize hard disk
 
 	mov eax, 0x2000000
 	mov ebx, 0x2000000
@@ -249,6 +250,10 @@ use32
 	mov ecx, 256
 	call vmm_unmap_memory
 
+	mov eax, 0x2000000
+	mov ecx, 256
+	call pmm_free_memory
+
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
 	call init_cmos				; initialize CMOS RTC clock
@@ -281,6 +286,8 @@ use32
 
 	cmp eax, 0
 	jne .init_missing
+
+	sti
 
 	call enter_ring3			; NEVER EVER let programs run in ring 0!
 	jmp 0x1000000
@@ -333,6 +340,7 @@ include				"kernel/apm.asm"		; APM BIOS
 ;include			"kernel/ata.asm"		; ATA disk driver
 ;include			"kernel/ahci.asm"		; SATA (AHCI) disk driver
 include				"kernel/drivers.asm"		; Driver interface
+include				"kernel/kdebug.asm"		; Kernel debugger
 
 db				"This program is property of Omar Mohammad.",0
 

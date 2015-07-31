@@ -37,11 +37,32 @@ use16
 	test al, 1			; make sure PCI supports the 32-bit I/O mechanism (port 0xCF8)
 	jz .no_pci
 
-	mov byte[is_there_pci], 1
+	mov [.major], bh
+	mov [.minor], bl
 
+	mov byte[is_there_pci], 1
 	call go32
 
 use32
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov al, [.major]
+	call bcd_to_int
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov al, [.minor]
+	call bcd_to_int
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print_noprefix
 
 	ret
 
@@ -75,7 +96,11 @@ use32
 	jmp $
 
 .no_pci_msg			db "Boot error: No proper PCI bus was found onboard.",0
-.found_pci			db "FOUND PCI BUS",0
+.debug_msg1			db "pci: PCI BIOS v",0
+.debug_msg2			db ".",0
+.debug_msg3			db " present.",10,0
+.major				db 0
+.minor				db 0
 
 ; pci_read_dword:
 ; Reads a DWORD from the PCI bus

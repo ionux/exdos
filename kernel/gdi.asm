@@ -33,21 +33,20 @@ get_pixel_offset:
 	mov ebx, [screen.bytes_per_line]
 	mul ebx
 
-	push eax
-
+	mov [.tmp], eax
 	mov eax, [.x]
 	mov ebx, [screen.bytes_per_pixel]
 	mul ebx
-
-	pop ebx
+	mov ebx, [.tmp]
 	add eax, ebx
+
 	mov edi, eax
 	add edi, dword[screen.framebuffer]
-
 	ret
 
 .x			dd 0
 .y			dd 0
+.tmp			dd 0
 
 ; get_screen_center:
 ; Get X/Y coordinates of screen center
@@ -523,10 +522,8 @@ print_string_graphics_cursor:
 .character:
 	mov bl, [x_cur_max]
 	cmp byte[x_cur], bl
-	jge .x_overflow
+	jg .x_overflow
 
-	;mov dl, [x_cur]
-	;mov dh, [y_cur]
 	call put_char_cursor
 
 	jmp .loop
@@ -654,26 +651,39 @@ clear_screen:
 	mov eax, [screen.height]
 	mov ebx, [screen.bytes_per_line]
 	mul ebx
-	add eax, dword[screen.bytes_per_line]
+	;add eax, dword[screen.bytes_per_line]
 
-	mov edi, [screen.framebuffer]
-	mov ecx, eax
-	cmp [screen.bpp], 32
+	cmp dword[screen.bpp], 32
 	jne .24
 
 .32:
+	mov ebx, 4
+	mov edx, 0
+	div ebx
+
+	mov ecx, eax
+
+	mov edi, [screen.framebuffer]
 	mov eax, [.color]
 	rep stosd
 	jmp .done
 
 .24:
+	mov ebx, 3
+	mov edx, 0
+	div ebx
+
+	mov ecx, eax
+	mov edi, [screen.framebuffer]
+
+.24_work:
 	mov eax, [.color]
 	stosb
 	shr eax, 8
 	stosb
 	shr eax, 8
 	stosb
-	loop .24
+	loop .24_work
 
 .done:
 	mov byte[x_cur], 0
@@ -811,50 +821,30 @@ fill_rect:
 ; Out\	EAX = Blended color
 
 alpha_blend_colors:
-	pusha
-	mov dword[.source], eax
-	mov dword[.dest], ebx
-
-	mov al, [.source.red]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
-	shr al, 1
-	mov [.out.red], al
-	mov al, [.dest.red]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
-	shr al, 1
-	add byte[.out.red], al
-
-	mov al, [.source.green]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
-	shr al, 1
-	mov [.out.green], al
-	mov al, [.dest.green]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
-	shr al, 1
-	add byte[.out.green], al
+	mov [.source], eax
+	mov [.dest], ebx
 
 	mov al, [.source.blue]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
 	shr al, 1
+	mov bl, [.dest.blue]
+	shr bl, 1
+	add al, bl
 	mov [.out.blue], al
-	mov al, [.dest.blue]
-	;mov ebx, 2
-	;mov edx, 0
-	;div ebx
-	shr al, 1
-	add byte[.out.blue], al
 
-	popa
+	mov al, [.source.green]
+	shr al, 1
+	mov bl, [.dest.green]
+	shr bl, 1
+	add al, bl
+	mov [.out.green], al
+
+	mov al, [.source.red]
+	shr al, 1
+	mov bl, [.dest.red]
+	shr bl, 1
+	add al, bl
+	mov [.out.red], al
+
 	mov eax, dword[.out]
 	ret
 

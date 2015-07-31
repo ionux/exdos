@@ -46,6 +46,10 @@ hex_word_to_string		= 23
 hex_dword_to_string		= 24
 compare_strings			= 25
 
+; Power-based routines
+reboot				= 26
+shutdown			= 27
+
 macro os_api function_number {
 	mov eax, function_number
 	call 0x520

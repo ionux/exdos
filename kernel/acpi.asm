@@ -21,7 +21,10 @@ rsdt_size			dd 0
 ; Initializes ACPI
 
 init_acpi:
-	cli
+	sti
+
+	mov esi, .debug_msg1
+	call kdebug_print
 
 	; First, we need to find the RSDP
 	mov esi, .rsd_ptr
@@ -42,9 +45,45 @@ init_acpi:
 	popa
 	mov [rsd_ptr], edi
 
+	mov esi, .debug_msg2
+	call kdebug_print
+
+	mov eax, [rsd_ptr]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print
+
+	mov esi, [rsd_ptr]
+	add esi, 15
+	mov al, byte[esi]
+	and eax, 0xFF
+	add al, 1
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg4
+	call kdebug_print_noprefix
+
+	mov esi, [rsd_ptr]
+	add esi, 9
+	mov edi, .oemid
+	mov ecx, 6
+	rep movsb
+
+	mov esi, .oemid
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	; Now, let's verify the checksum
 	mov esi, [rsd_ptr]
-	mov esi, edi
+	mov edi, [rsd_ptr]
 	add edi, 20
 	mov eax, 0
 
@@ -66,6 +105,16 @@ init_acpi:
 	add esi, 16
 	mov eax, [esi]
 	mov [rsdt], eax
+
+	mov esi, .debug_msg5
+	call kdebug_print
+
+	mov eax, [rsdt]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	mov eax, [rsdt]
 	mov ebx, [rsdt]
@@ -130,10 +179,14 @@ init_acpi:
 
 .rsd_ptr			db "RSD PTR "
 .rsdt_signature			db "RSDT"
-.found_rsd_ptr			db "FOUND ACPI RSDP AT ",0
-.found_rsdt			db "FOUND ACPI RSDT AT ",0
+.debug_msg1			db "acpi: initializing ACPI...",10,0
+.debug_msg2			db "acpi: RSD PTR found at ",0
+.debug_msg3			db "acpi: ACPI revision ",0
+.debug_msg4			db ", OEM ID ",0
+.debug_msg5			db "acpi: RSDT found at ",0
 .checksum_error_msg		db "Boot error: ACPI checksum error.",0
 .no_acpi_msg			db "Boot error: This PC doesn't support ACPI.",0
+.oemid:				times 7 db 0
 
 ; acpi_find_table:
 ; Finds an ACPI table
@@ -219,6 +272,16 @@ init_acpi_power:
 
 	mov [.fadt], esi
 
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [.fadt]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	jmp .verify_checksum
 
 .no_fadt:
@@ -275,6 +338,9 @@ init_acpi_power:
 	cmp dword[acpi_fadt.smi_command_port], 0
 	je .already_enabled
 
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	; If we're here, then ACPI is not enabled
 	mov edx, [acpi_fadt.smi_command_port]
 	mov al, [acpi_fadt.acpi_enable]
@@ -286,10 +352,22 @@ init_acpi_power:
 	jmp .enabled
 
 .already_enabled:
+	mov esi, .debug_msg2
+	call kdebug_print
 
 .enabled:
 
 .find_s5:
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	mov eax, [acpi_fadt.dsdt]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	; identity-page the DSDT
 	mov eax, [acpi_fadt.dsdt]
 	mov ebx, [acpi_fadt.dsdt]
@@ -322,44 +400,12 @@ init_acpi_power:
 	add esi, 7
 	mov ax, word[esi]
 	mov [acpi_slp_typa], ax
-	add esi, 2
-	mov ax, word[esi]
+	mov ax, word[esi+2]
 	mov [acpi_slp_typb], ax
 
 	mov ax, 0
 	or ax, 0x2000					; set bit 13 (SLP_EN)
 	mov [acpi_slp_en], ax
-
-	mov edx, [acpi_fadt.pm1a_control_block]
-	mov [acpi_shutdown_port], dx			; ACPI shutdown port = FADT.pm1a_control_block
-
-	mov ax, [acpi_slp_en]
-	mov bx, [acpi_slp_typa]
-	or ax, bx					; ACPI shutdown word = SLP_EN | SLP_TYPa
-	mov [acpi_shutdown_word], ax
-
-	; Now, to shutdown, we just need to do:
-	; outportw(FADT.pm1a_control_block, SLP_EN | SLP_TYPa);
-
-	mov ax, [acpi_fadt.sci_interrupt]
-	cmp ax, 7
-	jle .master_pic
-
-	cmp ax, 8
-	jge .slave_pic
-
-.master_pic:
-	add ax, 32			; we remapped IRQ0-7 to IDT entries 32-47
-	mov ebp, acpi_irq
-	call install_isr
-
-	ret
-
-.slave_pic:
-	sub ax, 8
-	add ax, 0x70
-	mov ebp, acpi_irq
-	call install_isr
 
 	ret
 
@@ -415,45 +461,62 @@ init_acpi_power:
 .checksum_error_msg		db "Boot error: ACPI FADT checksum error.",0
 .no_s5_msg			db "Boot error: ACPI \_S5 object not found.",0
 .s5_signature			db "_S5_"
+.debug_msg1			db "acpi: FADT found at ",0
+.debug_msg2			db "acpi: system is already in ACPI mode.",10,0
+.debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
+.debug_msg4			db "acpi: DSDT found at ",0
 
 acpi_s5				dd 0
 acpi_slp_typa			dw 0
 acpi_slp_typb			dw 0
 acpi_slp_en			dw 0
-acpi_shutdown_port		dw 0
-acpi_shutdown_word		dw 0
-
-; acpi_irq:
-; ACPI IRQ handler
-
-acpi_irq:
-	mov ax, 0x10
-	;mov ss, ax		; the TSS should have already done this for us
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-
-	; just for debugging, set text mode and display a letter X and halt
-	call text_mode
-
-	mov edi, 0xB8000
-	mov al, 'x'
-	stosb
-	mov al, 0x70
-	stosb
-
-	cli
-	hlt
 
 ; acpi_shutdown:
 ; Shuts down the system using ACPI
 
 acpi_shutdown:
-	mov dx, [acpi_shutdown_port]		; FADT.pm1a_control_block
-	mov ax, [acpi_shutdown_word]		; SLP_EN | SLP_TYPa
+	mov esi, .debug
+	call kdebug_print
+
+	mov ax, [acpi_slp_en]
+	mov bx, [acpi_slp_typa]
+	or ax, bx
+	mov [.a], ax
+
+	mov ax, [acpi_slp_en]
+	mov bx, [acpi_slp_typb]
+	or ax, bx
+	mov [.b], ax
+
+	mov edx, [acpi_fadt.pm1a_control_block]
+	mov ax, [.a]
 	out dx, ax
 
+	cmp dword[acpi_fadt.pm1b_control_block], 0
+	je .fail
+
+	mov edx, [acpi_fadt.pm1b_control_block]
+	mov ax, [.b]
+	out dx, ax
+
+.fail:
+	mov esi, .fail_msg
+	call kdebug_print
+
+	ret
+
+.a				dw 0
+.b				dw 0
+.debug				db "acpi: entering sleep state S5...",10,0
+.fail_msg			db "acpi: failed.",10,0
+
+; acpi_reset:
+; Resets the system using ACPI
+
+acpi_reset:
+	; According to Linux, the ACPI reset register exists only in version 2+ of the FADT
+
+.fail:
 	ret
 
 align 32
@@ -490,8 +553,41 @@ acpi_fadt:
 	.pm_timer_block		rd 1
 	.gpe0_block		rd 1
 	.gpe1_block		rd 1
+	.pm1_event_length	rb 1
+	.pm1_control_length	rb 1
+	.pm2_control_length	rb 1
+	.pm_timer_length	rb 1
+	.gpe0_length		rb 1
+	.gpe1_length		rb 1
+	.gpe1_base		rb 1
+	.cstate_control		rb 1
+	.worst_c2_latency	rw 1
+	.worst_c3_latency	rw 1
+	.flush_size		rw 1
+	.flush_stride		rw 1
+	.duty_offset		rb 1
+	.duty_width		rb 1
+	.day_alarm		rb 1
+	.month_alarm		rb 1
+	.century		rb 1
+
+	.boot_arch_flags	rb 1
+
+	.reserved2		rw 1
+	.flags			rd 1
+
+acpi_reset_register:
+	.address_space		rb 1
+	.bit_width		rb 1
+	.bit_offset		rb 1
+	.access_size		rb 1
+	.address		rq 1
+
+acpi_reset_value		rb 1
 
 end_of_acpi_fadt:
 
 acpi_fadt_size			= end_of_acpi_fadt - acpi_fadt
+
+
 

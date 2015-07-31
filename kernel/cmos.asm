@@ -49,6 +49,9 @@ wait_cmos:
 ; Initializes the CMOS RTC
 
 init_cmos:
+	mov esi, .debug_msg
+	call kdebug_print
+
 	call wait_cmos
 	mov al, 0xB
 	out 0x70, al
@@ -77,11 +80,25 @@ init_cmos:
 	jz .bcd
 
 	mov byte[cmos_bcd], 0
-	ret
+	jmp .done
 
 .bcd:
 	mov byte[cmos_bcd], 1
+
+.done:
+	mov esi, .debug_msg2
+	call kdebug_print
+
+	call get_time_string_12
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	ret
+
+.debug_msg			db "cmos: initializing CMOS RTC...",10,0
+.debug_msg2			db "cmos: the time is ",0
 
 ; get_time_24:
 ; Gets the time in 24 hour format

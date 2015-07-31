@@ -19,6 +19,9 @@ vmm_init:
 	cli
 	cld
 
+	mov esi, .debug_msg1
+	call kdebug_print
+
 	; first, let's clear the page directory and page tables
 	mov edi, page_directory
 	mov eax, 0
@@ -71,6 +74,8 @@ vmm_init:
 
 	ret
 
+.debug_msg1			db "vmm: starting up...",10,0
+
 ; vmm_map_memory:
 ; Maps physical memory to a virtual address
 ; In\	EAX = Physical address (must be 4 KB aligned)
@@ -85,6 +90,23 @@ vmm_map_memory:
 	mov [.virtual], ebx
 	mov [.blocks], ecx
 	mov [.attributes], edx
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [.blocks]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [.virtual]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	pushfd
 	cli
@@ -158,6 +180,9 @@ vmm_map_memory:
 	ret
 
 .error:
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	mov ebp, .quit_error
 	cmp byte[is_paging_enabled], 1
 	jne .quit_error
@@ -183,6 +208,9 @@ vmm_map_memory:
 .virtual_copy			dd 0
 .blocks				dd 0
 .attributes			dd 0
+.debug_msg1			db "vmm: mapping ",0
+.debug_msg2			db " blocks of physical memory to virtual address ",0
+.debug_msg3			db "vmm: alignment error.",10,0
 
 ; vmm_unmap_memory:
 ; Frees a virtual address
@@ -191,11 +219,28 @@ vmm_map_memory:
 ; Out\	EAX = 0 on success, 1 on error
 
 vmm_unmap_memory:
-	pushfd
-	cli
-
 	mov [.virtual], eax
 	mov [.blocks], ecx
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [.blocks]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [.virtual]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	pushfd
+	cli
 
 	cmp byte[is_paging_enabled], 1
 	jne .work
@@ -241,6 +286,9 @@ vmm_unmap_memory:
 	ret
 
 .error:
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	mov ebp, .quit_error
 	cmp byte[is_paging_enabled], 1
 	jne .quit_error
@@ -263,5 +311,8 @@ vmm_unmap_memory:
 .virtual			dd 0
 .virtual_copy			dd 0
 .blocks				dd 0
+.debug_msg1			db "vmm: freeing ",0
+.debug_msg2			db " blocks of virtual memory at address ",0
+.debug_msg3			db "vmm: alignment error.",10,0
 
 

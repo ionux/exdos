@@ -65,7 +65,18 @@ init_cpuid:
 	mov eax, cpu_brand
 	call chomp_string
 
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov esi, cpu_brand
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	ret
+
+.debug_msg1			db "cpu: CPU brand is ",0
 
 cpu_vendor:			times 13 db 0
 cpu_brand:			times 50 db 0
@@ -75,6 +86,9 @@ cpu_brand:			times 50 db 0
 
 detect_cpu_speed:
 	sti
+
+	mov esi, .debug_msg1
+	call kdebug_print
 
 	mov eax, 1
 	cpuid
@@ -106,6 +120,17 @@ detect_cpu_speed:
 	div ebx
 
 	mov [cpu_speed], ax
+
+	mov esi, .debug_msg2
+	call kdebug_print
+
+	movzx eax, word[cpu_speed]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print_noprefix
+
 	ret
 
 .no_tsc:
@@ -134,6 +159,9 @@ detect_cpu_speed:
 .no_tsc_msg			db "Boot error: This CPU doesn't support TSC: Timestamp counter.",0
 .high				dd 0
 .low				dd 0
+.debug_msg1			db "cpu: getting CPU speed using TSC...",10,0
+.debug_msg2			db "cpu: CPU speed is ",0
+.debug_msg3			db " MHz.",10,0
 
 cpu_speed			dw 0
 

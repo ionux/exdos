@@ -82,6 +82,7 @@ pit_irq:
 .second:
 	mov dword[.tmp_ticks], 0
 	add dword[uptime], 1
+
 	jmp .done
 
 .tmp_ticks			dd 0

@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function		= 25
+os_api_max_function		= 27
 
 ; os_api:
 ; Kernel API Entry Point
@@ -38,8 +38,8 @@ os_api:
 	mov eax, dword[edi]
 	mov [.tmp], eax
 	popa
-	mov eax, [.tmp]
 
+	mov eax, [.tmp]
 	call eax
 
 	pusha
@@ -92,6 +92,10 @@ os_api_table:
 	dd hex_word_to_string
 	dd hex_dword_to_string
 	dd compare_strings
+
+	; Power-based routines
+	dd reboot
+	dd shutdown
 
 ; mem_info:
 ; Gets memory information

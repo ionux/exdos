@@ -238,7 +238,8 @@ kbd_irq:
 	cmp byte[.alt_status], 1
 	jne .done
 
-	;call reboot
+	;mov ebp, [ctrl_alt_del_handler]
+	;call ebp
 
 .no:
 	mov byte[last_character], 0

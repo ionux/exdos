@@ -16,6 +16,9 @@ use32
 ; Shuts down the system using APM BIOS
 
 apm_shutdown:
+	mov esi, .debug_msg
+	call kdebug_print
+
 	call go16
 
 use16
@@ -52,6 +55,14 @@ use16
 
 use32
 
+	mov esi, .fail_msg
+	call kdebug_print
+
 	ret
+
+.debug_msg			db "apm: attempting APM shutdown...",10,0
+.fail_msg			db "apm: shutdown failed.",10,0
+
+
 
 

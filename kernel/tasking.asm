@@ -83,6 +83,12 @@ init_sysenter:
 	test edx, 0x20			; does the CPU support MSR?
 	jz .no_msr
 
+	mov eax, 1
+	cpuid
+
+	test edx, 0x800			; does the CPU support SYSENTER/SYSEXIT?
+	jz .no_sysenter
+
 	mov ecx, 0x174
 	mov eax, 8			; kernel code segment
 	mov edx, 0
@@ -134,7 +140,30 @@ init_sysenter:
 
 	jmp $
 
+.no_sysenter:
+	mov ebx, 0x333333
+	mov cx, 0
+	mov dx, 218
+	mov esi, 800
+	mov edi, 160
+	call alpha_fill_rect
+
+	mov esi, .no_sysenter_msg
+	mov bx, 32
+	mov cx, 250
+	mov edx, 0xDEDEDE
+	call print_string_transparent
+
+	mov esi, _boot_error_common
+	mov bx, 32
+	mov cx, 340
+	mov edx, 0xDEDEDE
+	call print_string_transparent
+
+	jmp $
+
 .no_msr_msg			db "Boot error: This CPU doesn't support MSR: Model-Specific Registers.",0
+.no_sysenter_msg		db "Boot error: ExDOS requires a Pentium II or better CPU.",0
 
 use32
 
@@ -244,12 +273,18 @@ program_header_size		= $ - program_header
 ; In\	ESI = Program path with parameters
 ; In\	EBX = Program return address
 ; Out\	EAX = Program exit code
-; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist
+; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist, 0xDEADC0DE if program caused errors
 
 execute_program:
 	mov [program_name], esi
+
+	mov eax, dword[esp+4]
+	mov [program_return], eax
+	mov [program_return_stack], esp
+	add dword[program_return_stack], 8
+
 	mov esi, [program_name]
-	mov edi, 0x40000
+	mov edi, 0x40000			; load the program to a temporary location
 	call load_file
 
 	cmp eax, 0
@@ -272,7 +307,7 @@ execute_program:
 	call pmm_find_free_block
 	jc out_of_memory
 
-	mov ebx, 0x8000000
+	mov ebx, 0x8000000			; map the program to 128 MB
 	mov ecx, [program_blocks]
 	mov edx, 7
 	call vmm_map_memory
@@ -292,7 +327,7 @@ execute_program:
 	call enter_ring0
 
 	mov byte[is_program_running], 0
-	;mov eax, ebx		; C/C++ returns exit codes in EAX
+	;mov eax, ebx		; C/C++ returns exit codes in EAX, not EBX
 	mov ebx, 0
 	ret
 

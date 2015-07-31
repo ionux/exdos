@@ -460,6 +460,9 @@ use32
 remap_pic:
 	cli
 
+	mov esi, .debug_msg
+	call kdebug_print
+
 	; remap the IRQs on the PIC
 	mov al, 0x11
 	out 0x20, al
@@ -523,6 +526,7 @@ remap_pic:
 	;sti
 	ret
 	
+.debug_msg					db "kernel: remapped PIC #1 offset to INT 32.",10,0
 .irq						dd 0
 
 ; init_pit:

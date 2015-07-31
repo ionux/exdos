@@ -101,6 +101,30 @@ set_vesa_mode:
 	mov [.height], bx
 	mov [.bpp], cl
 
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	movzx eax, word[.width]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	movzx eax, word[.height]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	movzx eax, byte[.bpp]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	call go16				; go to real mode so we can use the BIOS
 
 use16
@@ -200,9 +224,28 @@ use16
 
 use32
 
+	mov esi, .debug_msg5
+	call kdebug_print
 	ret
 
 .done:
+	mov esi, .debug_msg3
+	call kdebug_print
+
+	mov ax, [.mode]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg4
+	call kdebug_print_noprefix
+
+	mov eax, [screen.physical_buffer]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	movzx eax, word[.width]
 	mov [screen.width], eax
 	movzx eax, word[.height]
@@ -218,7 +261,7 @@ use32
 	mov byte[screen.is_graphics_mode], 1
 
 	movzx eax, word[.width]
-	mov ebx, [font_width]
+	mov ebx, 8
 	mov edx, 0
 	div ebx
 	sub eax, 1
@@ -226,7 +269,7 @@ use32
 	mov byte[x_cur_max], al
 
 	movzx eax, word[.height]
-	mov ebx, [font_height]
+	mov ebx, 16
 	mov edx, 0
 	div ebx
 	sub eax, 1
@@ -242,8 +285,9 @@ use32
 	mov edx, 0
 	div ebx
 	add eax, 1024
+	mov [.size], eax
 
-	mov ecx, eax
+	mov ecx, [.size]
 	mov eax, [screen.physical_buffer]
 	and eax, 0xFFFFF000
 	mov ebx, [screen.framebuffer]
@@ -253,12 +297,18 @@ use32
 	mov eax, 0
 	ret
 
+.size			dd 0
 .width			dw 0
 .height			dw 0
 .bpp			db 0
 .segment		dw 0
 .tmp			dw 0
 .mode			dw 0
+.debug_msg1		db "vbe: trying to set mode ",0
+.debug_msg2		db "x",0
+.debug_msg3		db "vbe: done, mode number ",0
+.debug_msg4		db ", framebuffer at ",0
+.debug_msg5		db "vbe: failed to set SVGA mode.",10,0
 
 ; text_mode:
 ; Sets VGA text mode 80x25 16 colors
@@ -280,4 +330,8 @@ use32
 
 	mov byte[screen.is_graphics_mode], 0
 	ret
+
+
+
+
 

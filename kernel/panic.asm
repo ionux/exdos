@@ -29,6 +29,8 @@ draw_panic_screen:
 	mov fs, ax
 	mov gs, ax
 
+	mov byte[is_program_running], 0
+
 	mov ax, 640
 	mov bx, 480
 	mov cl, 32

@@ -20,12 +20,26 @@ serial_ioport				dw 0
 
 init_serial:
 	cli
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
 	mov edi, 0x400
 	cmp word[edi], 0
 	je .no_serial
 
 	mov ax, word[edi]
 	mov [serial_ioport], ax
+
+	mov esi, .debug_msg2
+	call kdebug_print
+
+	mov ax, [serial_ioport]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	mov byte[is_there_serial], 1
 
@@ -65,8 +79,15 @@ init_serial:
 	ret
 
 .no_serial:
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	mov byte[is_there_serial], 0
 	ret
+
+.debug_msg1			db "serial: initializing serial port...",10,0
+.debug_msg2			db "serial: base IO port ",0
+.debug_msg3			db "serial: no serial port present.",10,0
 
 ; send_byte_via_serial:
 ; Sends a byte via serial port

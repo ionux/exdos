@@ -20,6 +20,17 @@ total_memory			dd 0
 ; Initializes the physical memory manager
 
 pmm_init:
+	mov esi, .debug_msg
+	call kdebug_print
+
+	mov eax, [total_memory_mb]
+	call int_to_string
+
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
 	mov dword[used_memory], 0
 
 	mov eax, [total_memory_kb]
@@ -37,6 +48,9 @@ pmm_init:
 
 	ret
 
+.debug_msg			db "pmm: starting with ",0
+.debug_msg2			db " MB of RAM.",10,0
+
 ; pmm_allocate_memory:
 ; Allocates physical memory
 ; In\	EAX = Physical location of memory (4 KB aligned)
@@ -46,6 +60,23 @@ pmm_init:
 pmm_allocate_memory:
 	mov [.physical], eax
 	mov [.blocks], ecx
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [.blocks]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [.physical]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	mov eax, [.physical]
 	test eax, 0xFFF
@@ -90,15 +121,25 @@ pmm_allocate_memory:
 	ret
 
 .too_little_memory:
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	mov eax, 2
 	ret
 
 .alignment_error:
+	mov esi, .debug_msg4
+	call kdebug_print
+
 	mov eax, 1
 	ret
 
 .physical			dd 0
 .blocks				dd 0
+.debug_msg1			db "pmm: allocating ",0
+.debug_msg2			db " blocks of memory at location ",0
+.debug_msg3			db "pmm: too little memory.",10,0
+.debug_msg4			db "pmm: alignment error.",10,0
 
 ; pmm_free_memory:
 ; Frees physical memory
@@ -109,6 +150,23 @@ pmm_allocate_memory:
 pmm_free_memory:
 	mov [.physical], eax
 	mov [.blocks], ecx
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [.blocks]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [.physical]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	mov eax, [.physical]
 	test eax, 0xFFF
@@ -153,15 +211,25 @@ pmm_free_memory:
 	ret
 
 .too_little_memory:
+	mov esi, .debug_msg3
+	call kdebug_print
+
 	mov eax, 2
 	ret
 
 .alignment_error:
+	mov esi, .debug_msg4
+	call kdebug_print
+
 	mov eax, 1
 	ret
 
 .physical			dd 0
 .blocks				dd 0
+.debug_msg1			db "pmm: freeing ",0
+.debug_msg2			db " blocks of memory at location ",0
+.debug_msg3			db "pmm: too little memory.",10,0
+.debug_msg4			db "pmm: alignment error.",10,0
 
 ; pmm_find_free_block:
 ; Finds a free physical memory block
