@@ -239,6 +239,13 @@ vmm_unmap_memory:
 	mov esi, _crlf
 	call kdebug_print_noprefix
 
+	mov eax, [.virtual]
+	call vmm_get_phys_address
+	mov [.physical], eax
+
+	cmp dword[.physical], 0xFFFFFFFF
+	je .no_memory
+
 	pushfd
 	cli
 
@@ -281,6 +288,10 @@ vmm_unmap_memory:
 	jmp .enable_paging
 
 .quit:
+	mov eax, [.physical]
+	mov ecx, [.blocks]
+	call pmm_free_memory
+
 	popfd
 	mov eax, 0
 	ret
@@ -308,11 +319,121 @@ vmm_unmap_memory:
 	mov eax, 1
 	ret
 
+.no_memory:
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	mov eax, [.virtual]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	ret
+
+.physical			dd 0
 .virtual			dd 0
 .virtual_copy			dd 0
 .blocks				dd 0
 .debug_msg1			db "vmm: freeing ",0
 .debug_msg2			db " blocks of virtual memory at address ",0
 .debug_msg3			db "vmm: alignment error.",10,0
+.debug_msg4			db "vmm: failed; there is no memory allocated at virtual address ",0
+
+; vmm_get_phys_address:
+; Gets physical address of a virtual address
+; In\	EAX = Virtual address
+; Out\	EAX = Physical address (0xDEADBEEF if address if not properly aligned, 0xFFFFFFFF if there is no memory at virtual address)
+
+vmm_get_phys_address:
+	pushfd
+	cli
+
+	mov [.virtual], eax
+
+	cmp byte[is_paging_enabled], 1
+	je .disable_paging
+
+	jmp .work
+
+.disable_paging:
+	mov eax, cr0
+	and eax, 0x7FFFFFFF
+	mov cr0, eax
+
+	mov eax, 0
+	mov cr3, eax
+
+.work:
+	mov eax, [.virtual]
+	test eax, 0xFFF
+	jnz .error
+
+	mov eax, [.virtual]
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+
+	;mov ebx, 4
+	;mov edx, 0
+	;div ebx
+
+	mov esi, page_table
+	add esi, eax
+
+	mov eax, dword[esi]
+	and eax, 0xFFFFF000
+
+	mov [.physical], eax
+	cmp dword[.physical], 0
+	je .no_memory
+
+	mov ebp, .done
+
+	cmp byte[is_paging_enabled], 1
+	je .enable_paging
+
+.done:
+	popfd
+	mov eax, [.physical]
+	ret
+
+.enable_paging:
+	mov eax, page_directory
+	mov cr3, eax
+
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+
+	jmp ebp
+
+.error:
+	mov ebp, .done_error
+
+	cmp byte[is_paging_enabled], 1
+	je .enable_paging
+
+.done_error:
+	popfd
+	mov eax, 0xDEADBEEF
+	ret
+
+.no_memory:
+	mov ebp, .no_memory_quit
+
+	cmp byte[is_paging_enabled], 1
+	je .enable_paging
+
+.no_memory_quit:
+	popfd
+	mov eax, 0xFFFFFFFF
+	ret
+
+.physical			dd 0
+.virtual			dd 0
+
+
 
 
