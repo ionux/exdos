@@ -570,63 +570,44 @@ print_string_graphics_cursor:
 
 scroll_screen_graphics:
 	pusha
-	
-	mov eax, [screen.width]
-	mov ebx, 16
-	mul ebx
-	mov ebx, [screen.bytes_per_pixel]
-	mul ebx
-	
-	mov [.length_of_top_line], eax
-	
-	mov eax, [screen.width] 
-	mov ebx, [screen.height] 
-	mul ebx
-	mov ebx, [screen.bytes_per_pixel]
-	mul ebx
 
-	mov ebx, [.length_of_top_line]
+	mov byte[x_cur], 0
+	mov al, [y_cur_max]
+	mov byte[y_cur], al
+
+	mov eax, 16
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+	mov [.size_of_line], eax
+
+	mov eax, [screen.height]
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+	mov ebx, [.size_of_line]
 	sub eax, ebx
-	
-	mov [.bytes_to_move], eax
-	
-	mov ebx, 16
+	mov ebx, 4
 	mov edx, 0
 	div ebx
-	
-	mov [.dqa_to_move], eax
-	
+	mov [.size], eax
+
 	mov eax, 0
 	mov ebx, 16
 	call get_pixel_offset
 
 	mov esi, edi
-	push esi
-	add esi, [.bytes_to_move]
-	mov [.end], esi
-	pop esi
-	
 	mov edi, [screen.framebuffer]
-	
-.loop:
-	movdqa xmm1, [esi]
-	movdqa [edi], xmm1
-	movdqa xmm0, dqword[.color]
-	movdqa [esi], xmm0
-	
-	add esi, 16
-	add edi, 16
-	
-	cmp esi, [.end]
-	jge .done
-	
-	jmp .loop
-	
-.done:
-	mov byte[x_cur], 0
-	mov al, [y_cur_max]
-	mov byte[y_cur], al
-	
+	mov ecx, [.size]
+	rep movsd
+
+	mov ebx, [screen.height]
+	sub ebx, 16
+	mov eax, 0
+	call get_pixel_offset
+
+	mov eax, 0
+	mov ecx, [.size_of_line]
+	rep stosb
+
 	popa
 	ret
 	
@@ -635,9 +616,8 @@ align 32			; If the memory is not properly aligned, MOVDQA fails
 .color				dq 0
 				dq 0
 .end				dd 0
-.length_of_top_line		dd 0
-.bytes_to_move			dd 0
-.dqa_to_move			dd 0
+.size_of_line			dd 0
+.size				dd 0
 
 ; clear_screen:
 ; Clears the screen in graphical mode

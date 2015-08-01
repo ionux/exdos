@@ -298,6 +298,15 @@ use32
 
 	mov [total_memory_mb], eax
 
+	cmp dword[.tmp_size2], 0			; if there is more than 4 GB of memory --
+	jne .maximum_size				; -- maximize the memory size, because the PMM only sees memory below 4 GB
+
+	jmp .e820_return
+
+.maximum_size:
+	mov dword[total_memory_bytes], 0xFFFFFFFF	; 4 GB
+
+.e820_return:
 	call go16
 
 use16
@@ -346,6 +355,8 @@ go32:
 	push ebx
 	push ecx
 	push edx
+
+	call enable_a20
 
 	cli
 	lgdt [gdtr]

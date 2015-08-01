@@ -25,6 +25,15 @@ kdebug_init:
 	mov eax, 0
 	rep stosb
 
+	mov esi, _kernel_version
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	mov esi, .done_msg
+	call kdebug_print
+
 	mov eax, kdebugger_location
 	mov ebx, kdebugger_location
 	mov ecx, 32
@@ -34,15 +43,6 @@ kdebug_init:
 	mov eax, cr0
 	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
 	mov cr0, eax
-
-	mov esi, _kernel_version
-	call kdebug_print_noprefix
-
-	mov esi, _crlf
-	call kdebug_print_noprefix
-
-	mov esi, .done_msg
-	call kdebug_print
 
 	ret
 

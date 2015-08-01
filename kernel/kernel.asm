@@ -119,7 +119,7 @@ get_vesa_mode_loop:
 	jmp .set_mode
 
 .1024x768:
-	mov [syswidth], 1024
+	mov [syswidth], 1366
 	mov [sysheight], 768
 
 .set_mode:
@@ -249,10 +249,6 @@ use32
 	mov eax, 0x2000000
 	mov ecx, 256
 	call vmm_unmap_memory
-
-	mov eax, 0x2000000
-	mov ecx, 256
-	call pmm_free_memory
 
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS

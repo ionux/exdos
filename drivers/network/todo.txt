@@ -1,4 +1,3 @@
-TO-DO: Write drivers for these Ethernet cards:
-- RTL8139 (for QEMU)
-- NE2000 (for Bochs)
+Atheros AR8151 PCI-E NDIS 6.20
+D-link DFE-520 TX PCI
 
