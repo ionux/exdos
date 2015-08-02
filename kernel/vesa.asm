@@ -12,7 +12,7 @@
 
 use32
 
-vesa_driver_name			db "ExDOS VESA 2.0 framebuffer driver",0
+vesa_driver_name		db "ExDOS VESA 2.0 framebuffer driver",0
 
 align 32
 
@@ -77,7 +77,8 @@ screen:
 	.bpp			dd 0
 	.bytes_per_pixel	dd 0
 	.bytes_per_line		dd 0
-	.framebuffer		dd 0xE0000000
+	.framebuffer		dd 0xC0000000
+	.virtual_buffer		dd 0xE0000000
 	.physical_buffer	dd 0
 	.is_graphics_mode	db 0
 
@@ -289,10 +290,31 @@ use32
 
 	mov ecx, [.size]
 	mov eax, [screen.physical_buffer]
-	and eax, 0xFFFFF000
-	mov ebx, [screen.framebuffer]
+	and eax, 0xFFFFF000			; ensure buffer is 4 KB page-aligned
+	mov ebx, [screen.virtual_buffer]
 	mov edx, 3				; only the kernel can access a framebuffer
 	call vmm_map_memory			; map the framebuffer to a virtual address
+
+	mov eax, 0xC00000			; 12 MB
+	mov ecx, [.size]
+	call pmm_find_free_block
+	mov ebx, [screen.framebuffer]
+	mov ecx, [.size]
+	mov edx, 3
+	call vmm_map_memory			; allocate memory for the double buffer
+
+	; clear the double buffer and update the screen for the first time
+	mov eax, [screen.height]
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+	add eax, dword[screen.bytes_per_line]
+
+	mov ecx, eax
+	mov eax, 0
+	mov edi, [screen.framebuffer]
+	rep stosb
+
+	call redraw_screen			; ensure the screen is blank
 
 	mov eax, 0
 	ret

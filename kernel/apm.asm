@@ -6,7 +6,7 @@
 ;; Copyright (C) 2015 by Omar Mohammad, all rights reserved.		;;
 ;;									;;
 ;; kernel/apm.asm							;;
-;; BIOS Advanced Power Management					;;
+;; Advanced Power Management						;;
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

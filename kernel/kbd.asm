@@ -397,7 +397,19 @@ get_string_echo:
 	push eax
 	stosb
 	pop eax
-	call put_char_cursor
+
+	push edi
+	push eax
+	mov edi, .tmp
+	stosb
+	mov al, 0
+	stosb
+	mov esi, .tmp
+	mov ecx, [text_background]
+	mov edx, [text_foreground]
+	call print_string_graphics_cursor
+	pop eax
+	pop edi
 
 	cmp edi, [.end_string]
 	je .done
@@ -410,12 +422,10 @@ get_string_echo:
 	jle .loop
 
 	dec edi
-	mov al, 8
-	call put_char_cursor
-	mov al, ' '
-	call put_char_cursor
-	mov al, 8
-	call put_char_cursor
+	mov esi, .backspace_chars
+	mov ecx, [text_background]
+	mov edx, [text_foreground]
+	call print_string_graphics_cursor
 
 	jmp .loop
 
@@ -432,5 +442,6 @@ get_string_echo:
 .string				dd 0
 .end_string			dd 0
 .x				db 0
-
+.tmp:				times 2 db 0
+.backspace_chars		db 8,32,8,0
 

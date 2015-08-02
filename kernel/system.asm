@@ -581,24 +581,12 @@ init_sse:
 	ret
 
 .no_sse:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
+	call go16
 
-	mov esi, .no_sse_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+use16
 
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	mov si, .no_sse_msg
+	call print_string_16
 
 	jmp $
 

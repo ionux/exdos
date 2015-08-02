@@ -48,6 +48,35 @@ get_pixel_offset:
 .y			dd 0
 .tmp			dd 0
 
+; redraw_screen:
+; Redraws the screen
+
+redraw_screen:
+	pusha
+	mov eax, [screen.height]
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+	add eax, dword[screen.bytes_per_line]
+
+	mov ebx, 16
+	mov edx, 0
+	div ebx
+
+	mov ecx, eax
+	mov esi, [screen.framebuffer]
+	mov edi, [screen.virtual_buffer]
+
+.loop:
+	movdqa xmm0, [esi]
+	movdqa [edi], xmm0
+
+	add esi, 16
+	add edi, 16
+	loop .loop
+
+	popa
+	ret
+
 ; get_screen_center:
 ; Get X/Y coordinates of screen center
 ; In\	Nothing
@@ -109,6 +138,7 @@ put_pixel:
 	shr eax, 8
 	stosb				; red
 
+	call redraw_screen
 	popa
 	ret
 
@@ -435,6 +465,7 @@ print_string_transparent:
 	jmp .loop
 
 .done:
+	call redraw_screen
 	ret
 
 .x			dw 0
@@ -489,6 +520,7 @@ print_string_graphics:
 	jmp .loop
 
 .done:
+	call redraw_screen
 	ret
 
 .x			dw 0
@@ -504,6 +536,7 @@ print_string_graphics:
 ; Out\	Nothing
 
 print_string_graphics_cursor:
+	pusha
 	mov [text_background], ecx
 	mov [text_foreground], edx
 	;cld
@@ -560,6 +593,8 @@ print_string_graphics_cursor:
 	jmp .character
 
 .done:
+	call redraw_screen
+	popa
 	ret
 
 .x			dw 0
@@ -585,7 +620,7 @@ scroll_screen_graphics:
 	mul ebx
 	mov ebx, [.size_of_line]
 	sub eax, ebx
-	mov ebx, 4
+	mov ebx, 16
 	mov edx, 0
 	div ebx
 	mov [.size], eax
@@ -597,17 +632,37 @@ scroll_screen_graphics:
 	mov esi, edi
 	mov edi, [screen.framebuffer]
 	mov ecx, [.size]
-	rep movsd
+
+.loop:
+	movdqa xmm0, [esi]
+	movdqa [edi], xmm0
+
+	add esi, 16
+	add edi, 16
+	loop .loop
+
+	mov eax, [.size_of_line]
+	mov ebx, 16
+	mov edx, 0
+	div ebx
+	mov [.size_of_line], eax
 
 	mov ebx, [screen.height]
 	sub ebx, 16
 	mov eax, 0
 	call get_pixel_offset
 
-	mov eax, 0
 	mov ecx, [.size_of_line]
-	rep stosb
 
+.clear_bottom_line:
+	movdqa xmm0, dqword[.color]
+	movdqa [edi], xmm0
+
+	add edi, 16
+	loop .clear_bottom_line
+
+.done:
+	call redraw_screen
 	popa
 	ret
 	
@@ -666,6 +721,8 @@ clear_screen:
 	loop .24_work
 
 .done:
+	call redraw_screen
+
 	mov byte[x_cur], 0
 	mov byte[y_cur], 0
 	popa
@@ -729,6 +786,7 @@ draw_horz_line:
 	jmp .24
 
 .done:
+	call redraw_screen
 	popa
 	ret
 
@@ -749,102 +807,128 @@ draw_horz_line:
 
 fill_rect:
 	pusha
-	and ecx, 0xFFFF
-	and edx, 0xFFFF
-	and esi, 0xFFFF
-	and edi, 0xFFFF
-
 	mov [.color], ebx
-	mov [.x], ecx
-	mov [.y], edx
-	mov [.width], esi
-	mov [.height], edi
+	mov [.x], cx
+	mov [.y], dx
+	mov [.width], si
+	mov [.height], di
 
-	mov eax, [.x]
-	add eax, dword[.width]
-	mov [.max_x], eax
+	movzx eax, word[.width]
+	mov ebx, [screen.bytes_per_pixel]
+	mul ebx
+	mov [.size], eax
 
-	mov eax, [.y]
-	add eax, dword[.height]
-	mov [.max_y], eax
+	mov ax, [.x]
+	mov bx, [.y]
+	call get_pixel_offset
+	mov [.offset], edi
 
-	mov ebx, [.color]
-	mov ecx, [.x]
-	mov edx, [.y]
-	mov esi, [.width]
+	mov dword[.row], 0
 
-.draw_loop:
-	pusha
-	call draw_horz_line
-	popa
-	add edx, 1
-	cmp edx, dword[.max_y]
-	jge .done
-	jmp .draw_loop
+	cmp dword[screen.bpp], 32
+	jne .24
+
+.32:
+	mov eax, [.size]
+	mov ebx, 4
+	mov edx, 0
+	div ebx
+	mov [.size], eax
+
+.32_loop:
+	mov edi, [.offset]
+	mov eax, [.color]
+	mov ecx, [.size]
+	rep stosd
+
+	add dword[.row], 1
+	movzx eax, word[.height]
+	cmp eax, dword[.row]
+	jl .done
+
+	mov eax, [screen.bytes_per_line]
+	add dword[.offset], eax
+	;mov eax, [screen.bytes_per_pixel]
+	;add dword[.offset], eax
+	jmp .32_loop
+
+.24:
+	mov ecx, [.size]
+	mov edi, [.offset]
+
+.24_loop:
+	mov eax, [.color]
+	stosb
+	shr eax, 8
+	stosb
+	shr eax, 8
+	stosb
+
+	sub ecx, 3
+	cmp ecx, 0
+	je .24_newline
+
+	jmp .24_loop
+
+.24_newline:
+	add dword[.row], 1
+	movzx eax, word[.height]
+	cmp eax, dword[.row]
+	jl .done
+
+	mov eax, [screen.bytes_per_line]
+	add dword[.offset], eax
+	jmp .24
 
 .done:
+	call redraw_screen
 	popa
 	ret
 
 .color				dd 0
-.x				dd 0
-.y				dd 0
-.width				dd 0
-.height				dd 0
-.max_x				dd 0
-.max_y				dd 0
+.x				dw 0
+.y				dw 0
+.width				dw 0
+.height				dw 0
+.size				dd 0
+.row				dd 0
+.offset				dd 0
 
 ; alpha_blend_colors:
-; Blends two colors (unoptimized, causes loss of performance)
+; Blends two colors
 ; In\	EAX = Source color
 ; In\	EBX = Destination color
 ; Out\	EAX = Blended color
 
 alpha_blend_colors:
+	; TO-DO: Optimize this routine, as it currently causes too much loss of performance.
 	mov [.source], eax
 	mov [.dest], ebx
 
-	mov al, [.source.blue]
-	shr al, 1
-	mov bl, [.dest.blue]
-	shr bl, 1
-	add al, bl
-	mov [.out.blue], al
+	shr byte[.source.blue], 1
+	shr byte[.source.green], 1
+	shr byte[.source.red], 1
+	shr byte[.dest.blue], 1
+	shr byte[.dest.green], 1
+	shr byte[.dest.red], 1
 
-	mov al, [.source.green]
-	shr al, 1
-	mov bl, [.dest.green]
-	shr bl, 1
-	add al, bl
-	mov [.out.green], al
+	mov eax, dword[.source]
+	mov ebx, dword[.dest]
+	add eax, ebx
 
-	mov al, [.source.red]
-	shr al, 1
-	mov bl, [.dest.red]
-	shr bl, 1
-	add al, bl
-	mov [.out.red], al
-
-	mov eax, dword[.out]
 	ret
 
 .source:
 .source.blue		db 0
 .source.green		db 0
 .source.red		db 0
-.source.reserved	db 0
+.source.alpha		db 0
 
 .dest:
 .dest.blue		db 0
 .dest.green		db 0
 .dest.red		db 0
-.dest.reserved		db 0
-
-.out:
-.out.blue		db 0
-.out.green		db 0
-.out.red		db 0
-.out.reserved		db 0
+.dest.alpha		db 0
 
 ; alpha_draw_horz_line:
 ; Draws a horizontal line with alpha blending
@@ -907,6 +991,7 @@ alpha_draw_horz_line:
 	jmp .24
 
 .done:
+	call redraw_screen
 	popa
 	ret
 
@@ -927,50 +1012,102 @@ alpha_draw_horz_line:
 
 alpha_fill_rect:
 	pusha
-	and ecx, 0xFFFF
-	and edx, 0xFFFF
-	and esi, 0xFFFF
-	and edi, 0xFFFF
-
 	mov [.color], ebx
-	mov [.x], ecx
-	mov [.y], edx
-	mov [.width], esi
-	mov [.height], edi
+	mov [.x], cx
+	mov [.y], dx
+	mov [.width], si
+	mov [.height], di
 
-	mov eax, [.x]
-	add eax, dword[.width]
-	mov [.max_x], eax
+	movzx eax, word[.width]
+	mov ebx, [screen.bytes_per_pixel]
+	mul ebx
+	mov [.size], eax
 
-	mov eax, [.y]
-	add eax, dword[.height]
-	mov [.max_y], eax
+	mov ax, [.x]
+	mov bx, [.y]
+	call get_pixel_offset
+	mov [.offset], edi
 
+	mov dword[.row], 0
+
+	cmp dword[screen.bpp], 32
+	jne .24
+
+.32:
+	mov eax, [.size]
+	mov ebx, 4
+	mov edx, 0
+	div ebx
+	mov [.size], eax
+
+.32_stub:
+	mov edi, [.offset]
+	mov ecx, [.size]
+
+.32_loop:
+	mov eax, dword[edi]
 	mov ebx, [.color]
-	mov ecx, [.x]
-	mov edx, [.y]
-	mov esi, [.width]
+	call alpha_blend_colors
+	stosd
 
-.draw_loop:
-	pusha
-	call alpha_draw_horz_line
-	popa
-	add edx, 1
-	cmp edx, dword[.max_y]
-	jge .done
-	jmp .draw_loop
+	dec ecx
+	cmp ecx, 0
+	je .32_newline
+	jmp .32_loop
+
+.32_newline:
+	add dword[.row], 1
+	movzx eax, word[.height]
+	cmp eax, dword[.row]
+	jl .done
+
+	mov eax, [screen.bytes_per_line]
+	add dword[.offset], eax
+	jmp .32_stub
+
+.24:
+	mov edi, [.offset]
+	mov ecx, [.size]
+
+.24_loop:
+	mov eax, dword[edi]
+	and eax, 0xFFFFFF
+	mov ebx, [.color]
+	call alpha_blend_colors
+	stosb
+	shr eax, 8
+	stosb
+	shr eax, 8
+	stosb
+
+	sub ecx, 3
+	cmp ecx, 0
+	je .24_newline
+	jmp .24_loop
+
+.24_newline:
+	add dword[.row], 1
+	movzx eax, word[.height]
+	cmp eax, dword[.row]
+	jl .done
+
+	mov eax, [screen.bytes_per_line]
+	add dword[.offset], eax
+	jmp .24
 
 .done:
+	call redraw_screen
 	popa
 	ret
 
 .color				dd 0
-.x				dd 0
-.y				dd 0
-.width				dd 0
-.height				dd 0
-.max_x				dd 0
-.max_y				dd 0
+.x				dw 0
+.y				dw 0
+.width				dw 0
+.height				dw 0
+.size				dd 0
+.row				dd 0
+.offset				dd 0
 
 bmp_location			dd 0
 bmp_signature			= 0x00
@@ -1111,9 +1248,9 @@ display_bitmap_32bpp:
 	jmp .loop
 
 .done:
+	call redraw_screen
 	mov eax, 0
 	ret
-	
 
 .width			dd 0
 .height			dd 0
@@ -1222,9 +1359,9 @@ display_bitmap_24bpp:
 	jmp .loop
 
 .done:
+	call redraw_screen
 	mov eax, 0
 	ret
-
 
 .width			dd 0
 .height			dd 0

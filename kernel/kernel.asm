@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Friday, 31st July, 2015"
+define TODAY "Monday, 3rd August, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1
@@ -73,6 +73,8 @@ kmain16:
 	call verify_enough_memory		; verify we have enough usable RAM
 
 get_vesa_mode_loop:
+	mov byte[is_paging_enabled], 0
+
 	mov si, _crlf
 	call print_string_16
 
@@ -106,6 +108,9 @@ get_vesa_mode_loop:
 	cmp al, '3'
 	je .1024x768
 
+	cmp al, '4'
+	je .1366x768
+
 	jmp .loop
 
 .640x480:
@@ -119,6 +124,11 @@ get_vesa_mode_loop:
 	jmp .set_mode
 
 .1024x768:
+	mov [syswidth], 1024
+	mov [sysheight], 768
+	jmp .set_mode
+
+.1366x768:
 	mov [syswidth], 1366
 	mov [sysheight], 768
 
@@ -141,6 +151,7 @@ get_vesa_mode_loop:
 			db " [1] 640x480",13,10
 			db " [2] 800x600",13,10
 			db " [3] 1024x768",13,10
+			db " [4] 1366x768",13,10
 			db "Your choice: ",0
 .bad_resol_msg		db "This resolution is not supported by your hardware or display.",13,10
 			db "Please try another resolution.",13,10,0
@@ -177,6 +188,7 @@ kmain32:
 	call kdebug_init			; initialize kernel debugger
 	call init_exceptions			; we should install exceptions handlers before anything, just to be safe
 	call remap_pic				; remap IRQ 0-15 to INT 32-47
+	call init_sse				; enable SSE
 	call pmm_init				; initalize physical memory manager
 	call vmm_init				; start paging and virtual memory management
 	call init_pit				; set up PIT to 100 Hz
@@ -218,14 +230,8 @@ use32
 
 	call init_hdd				; initialize hard disk
 
-	mov eax, 0x2000000
-	mov ebx, 0x2000000
-	mov ecx, 256
-	mov edx, 3
-	call vmm_map_memory
-
 	mov esi, bootlogo
-	mov edi, 0x2000000
+	mov edi, disk_buffer
 	call load_file
 
 	cmp eax, 0
@@ -234,7 +240,7 @@ use32
 	call get_screen_center
 	sub bx, 64
 	sub cx, 64
-	mov esi, 0x2000000
+	mov esi, disk_buffer
 	call draw_image
 
 .continue_booting:
@@ -246,14 +252,9 @@ use32
 	mov esi, _copyright
 	call print_string_transparent
 
-	mov eax, 0x2000000
-	mov ecx, 256
-	call vmm_unmap_memory
-
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
 	call init_cmos				; initialize CMOS RTC clock
-	call init_sse				; enable SSE
 	call init_cpuid				; get CPU brand
 	call detect_cpu_speed			; get CPU speed
 	call init_serial			; enable serial port
@@ -282,8 +283,6 @@ use32
 
 	cmp eax, 0
 	jne .init_missing
-
-	sti
 
 	call enter_ring3			; NEVER EVER let programs run in ring 0!
 	jmp 0x1000000
