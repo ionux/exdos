@@ -67,48 +67,48 @@ kdebug_print:
 	pusha
 	mov [.string], esi
 
-	mov edi, [kdebugger_free_location]
 	mov al, '['
+	mov edi, .timestamp
 	stosb
-	mov [kdebugger_free_location], edi
 
-	mov eax, [uptime]
+	mov ax, word[uptime]
 	call hex_word_to_string
-
-	mov edi, [kdebugger_free_location]
+	mov edi, .timestamp+1
 	mov ecx, 4
 	rep movsb
 
-	mov al, '.'
-	stosb
-	mov [kdebugger_free_location], edi
-
-	mov eax, [ticks]
+	mov eax, dword[ticks]
 	call hex_dword_to_string
-
-	mov edi, [kdebugger_free_location]
+	mov edi, .timestamp+6
 	mov ecx, 8
 	rep movsb
 
-	mov al, ']'
-	stosb
-	mov al, ' '
-	stosb
+	mov esi, .timestamp
+	call send_string_via_serial
 
+	mov esi, .timestamp
+	mov edi, [kdebugger_free_location]
+	mov ecx, 16
+	rep movsb
 	mov [kdebugger_free_location], edi
+
+	mov esi, [.string]
+	call send_string_via_serial
+
 	mov esi, [.string]
 	call get_string_size
-
 	mov ecx, eax
 	mov esi, [.string]
 	mov edi, [kdebugger_free_location]
 	rep movsb
 
 	mov [kdebugger_free_location], edi
+
 	popa
 	ret
 
 .string				dd 0
+.timestamp			db "[0000.00000000] ",0
 
 ; kdebug_print_noprefix:
 ; Prints a kernel debug message without the timestamp prefix
@@ -118,6 +118,9 @@ kdebug_print:
 kdebug_print_noprefix:
 	pusha
 	mov [.string], esi
+
+	mov esi, [.string]
+	call send_string_via_serial
 
 	mov esi, [.string]
 	call get_string_size

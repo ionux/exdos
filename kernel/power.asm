@@ -19,8 +19,14 @@ reboot:
 	cmp byte[is_program_running], 0
 	jne .program
 
+	mov esi, .debug_msg
+	call kdebug_print
+
 	cli
 	call acpi_reset				; try ACPI reset
+
+	mov esi, .debug_msg2
+	call kdebug_print
 
 	call wait_ps2_write			; if it failed, try the PS/2 keyboard method
 	mov al, 0xFE
@@ -52,6 +58,8 @@ reboot:
 
 .error_msg			db "task: program ",0
 .error_msg2			db " attempted to reboot system; access denied.",10,0
+.debug_msg			db "kernel: reboot requested.",10,0
+.debug_msg2			db "kernel: attempting PS/2 reset...",10,0
 
 ; shutdown:
 ; Shuts down the PC
@@ -59,6 +67,9 @@ reboot:
 shutdown:
 	cmp byte[is_program_running], 0
 	jne .program
+
+	mov esi, .debug_msg
+	call kdebug_print
 
 	call apm_shutdown		; try APM BIOS shutdown
 
@@ -130,7 +141,7 @@ shutdown:
 .error_msg			db "task: program ",0
 .error_msg2			db " attempted to shut down system; access denied.",10,0
 .safe_msg			db "It's now safe to power-off your PC.",0
-
+.debug_msg			db "kernel: shutdown requested.",10,0
 
 
 

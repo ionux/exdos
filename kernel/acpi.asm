@@ -329,7 +329,7 @@ init_acpi_power:
 
 	mov esi, [.fadt]
 	mov edi, acpi_fadt
-	mov ecx, acpi_fadt_size
+	mov ecx, end_of_acpi_fadt - acpi_fadt
 	rep movsb
 
 	cmp byte[acpi_fadt.acpi_enable], 0		; is ACPI enabled?
@@ -472,50 +472,12 @@ init_acpi_power:
 	jmp $
 
 .bad_s5:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
-	mov esi, .s5_error_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	mov word[acpi_slp_typa], 0
+	ret
 
 .no_s5:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
-	mov esi, .no_s5_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	mov word[acpi_slp_typa], 0
+	ret
 
 .facp				db "FACP"
 .fadt				dd 0
@@ -576,17 +538,72 @@ acpi_shutdown:
 
 .a				dw 0
 .b				dw 0
-.debug				db "acpi: power off.",10,0
-.fail_msg			db "acpi: failed.",10,0
+.debug				db "acpi: attempting ACPI shutdown...",10,0
+.fail_msg			db "acpi: failed...",10,0
 
 ; acpi_reset:
 ; Resets the system using ACPI
 
 acpi_reset:
+	mov esi, .debug_msg
+	call kdebug_print
+
+	cli
+
 	; According to Linux, the ACPI reset register exists only in version 2+ of the FADT
+	cmp byte[acpi_fadt.revision], 2
+	jl .fail
+
+	mov eax, [acpi_fadt.flags]
+	test eax, 0x400						; is the reset register supported?
+	jz .fail
+
+	cmp byte[acpi_reset_register.address_space], 0		; memory mapped I/O
+	je .memory
+
+	cmp byte[acpi_reset_register.address_space], 1		; I/O
+	je .io
+
+	; TO-DO: Implement ACPI PCI reset
+	;cmp byte[acpi_reset_register.address_space], 2		; PCI
+	;je .pci
+
+	jmp .fail
+
+.memory:
+	mov esi, .debug_msg3
+	call kdebug_print
+
+	cmp dword[acpi_reset_register.address], 0
+	je .fail
+
+	cmp dword[acpi_reset_register.access_size], 0
+	je .fail
+
+	mov edi, dword[acpi_reset_register.address]
+	mov al, [acpi_reset_value]
+	stosb							; system should be powered off now
+	jmp .fail
+
+.io:
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	mov edx, dword[acpi_reset_register.address]
+	mov al, [acpi_reset_value]
+	out dx, al
 
 .fail:
+	mov esi, .debug_msg2
+	call kdebug_print
+
 	ret
+
+.debug_msg			db "acpi: attempting ACPI reset...",10,0
+.debug_msg2			db "acpi: failed...",10,0
+.debug_msg3			db "acpi: memory mapped reset...",10,0
+.debug_msg4			db "acpi: I/O bus reset...",10,0
+;.debug_msg5			db "acpi: PCI bus reset...",10,0
 
 align 32
 
@@ -640,9 +657,8 @@ acpi_fadt:
 	.month_alarm		rb 1
 	.century		rb 1
 
-	.boot_arch_flags	rb 1
-
-	.reserved2		rw 1
+	.boot_arch_flags	rw 1
+	.reserved2		rb 1
 	.flags			rd 1
 
 acpi_reset_register:

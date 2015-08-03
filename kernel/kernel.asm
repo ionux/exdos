@@ -185,6 +185,7 @@ kmain32:
 	push eax
 	popfd
 
+	call init_serial			; enable serial port
 	call kdebug_init			; initialize kernel debugger
 	call init_exceptions			; we should install exceptions handlers before anything, just to be safe
 	call remap_pic				; remap IRQ 0-15 to INT 32-47
@@ -257,7 +258,6 @@ use32
 	call init_cmos				; initialize CMOS RTC clock
 	call init_cpuid				; get CPU brand
 	call detect_cpu_speed			; get CPU speed
-	call init_serial			; enable serial port
 	call init_acpi				; initialize ACPI
 	call init_acpi_power			; initialize ACPI power management
 	;call init_pcie				; PCI Express is not yet implemented
