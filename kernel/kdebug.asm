@@ -10,8 +10,12 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-kdebugger_location			= 0x20000		; 128 KB is reserved for kernel debugger
+kdebugger_location			= 0x20000		; 0x20000=>0x40000 (128 KB) is reserved for kernel debugger
 kdebugger_free_location			dd 0
+
+; Each debug message has this format:
+; [SSSS.TTTTTTTT] component: message.
+; Where SSSS is the uptime in seconds shown in hex, TTTTTTTT is the uptime in PIT IRQ0 shown in hex as well.
 
 ; kdebug_init:
 ; Initializes the kernel debugger
@@ -35,18 +39,15 @@ kdebug_init:
 	call kdebug_print
 
 	mov eax, kdebugger_location
-	mov ebx, kdebugger_location
-	mov ecx, 32
-	mov edx, 5				; user, present, read-only
-	call vmm_map_memory
+	call hex_dword_to_string
+	call kdebug_print_noprefix
 
-	mov eax, cr0
-	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
-	mov cr0, eax
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	ret
 
-.done_msg			db "kernel: kernel debugger started.",10,0
+.done_msg			db "kernel: kernel debugger started at address ",0
 
 ; kdebug_get_location:
 ; Gets location of kernel debugger

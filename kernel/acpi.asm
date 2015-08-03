@@ -396,12 +396,51 @@ init_acpi_power:
 .found_s5:
 	popa
 	mov [acpi_s5], edi
+	mov edi, [acpi_s5]
+	cmp byte[edi+4], 0x12
+	jne .bad_s5
+
+	cmp byte[edi+6], 4
+	jne .bad_s5
+
+	;ov esi, [acpi_s5]
+	;add esi, 7
+	;mov ax, word[esi]
+	;mov [acpi_slp_typa], ax
+	;mov ax, word[esi+2]
+	;mov [acpi_slp_typb], ax
+	mov edi, [acpi_s5]
+
+	mov dl, byte[edi+6]
+
 	mov esi, [acpi_s5]
 	add esi, 7
-	mov ax, word[esi]
-	mov [acpi_slp_typa], ax
-	mov ax, word[esi+2]
-	mov [acpi_slp_typb], ax
+	mov ecx, 0
+	cmp byte[esi], 0
+	jz .next
+
+	cmp byte[esi], 0xA
+	jnz .bad_s5
+
+	add esi, 1
+	mov cl, [esi]
+
+.next:
+	add esi, 1
+	cmp dl, 2
+	jb .next2
+
+	cmp byte[esi], 0
+	jz .next2
+
+	cmp byte[esi], 0xA
+	jnz .bad_s5
+
+	add esi, 1
+	mov ch, [esi]
+
+.next2:
+	mov [acpi_slp_typa], cx
 
 	mov ax, 0
 	or ax, 0x2000					; set bit 13 (SLP_EN)
@@ -418,6 +457,29 @@ init_acpi_power:
 	call alpha_fill_rect
 
 	mov esi, .checksum_error_msg
+	mov bx, 32
+	mov cx, 250
+	mov edx, 0xDEDEDE
+	call print_string_transparent
+
+	mov esi, _boot_error_common
+	mov bx, 32
+	mov cx, 340
+	mov edx, 0xDEDEDE
+	call print_string_transparent
+
+	sti
+	jmp $
+
+.bad_s5:
+	mov ebx, 0x333333
+	mov cx, 0
+	mov dx, 218
+	mov esi, 800
+	mov edi, 160
+	call alpha_fill_rect
+
+	mov esi, .s5_error_msg
 	mov bx, 32
 	mov cx, 250
 	mov edx, 0xDEDEDE
@@ -460,7 +522,8 @@ init_acpi_power:
 .no_fadt_msg			db "Boot error: ACPI FADT table not found.",0
 .checksum_error_msg		db "Boot error: ACPI FADT checksum error.",0
 .no_s5_msg			db "Boot error: ACPI \_S5 object not found.",0
-.s5_signature			db "_S5_"
+.s5_error_msg			db "Boot error: ACPI \_S5 object is corrupt.",0
+.s5_signature			db "_S5_",0
 .debug_msg1			db "acpi: FADT found at ",0
 .debug_msg2			db "acpi: system is already in ACPI mode.",10,0
 .debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
@@ -475,30 +538,34 @@ acpi_slp_en			dw 0
 ; Shuts down the system using ACPI
 
 acpi_shutdown:
-	cli
+	;sti
 
 	mov esi, .debug
 	call kdebug_print
 
-	mov ax, [acpi_slp_en]
-	mov bx, [acpi_slp_typa]
-	or ax, bx
-	mov [.a], ax
-
-	mov ax, [acpi_slp_en]
-	mov bx, [acpi_slp_typb]
-	or ax, bx
-	mov [.b], ax
-
+	; First, we need to write the value SLP_TYPa into the PM1a_control_block
+	mov cx, [acpi_slp_typa]
+	and cx, 0x707
+	shl cx, 2
+	or cx, 0x2020
 	mov edx, [acpi_fadt.pm1a_control_block]
-	mov ax, [.a]
+	in ax, dx
+	and ax, 0x203
+	or ah, cl
 	out dx, ax
 
-	cmp dword[acpi_fadt.pm1b_control_block], 0
-	je .fail
+	; If the system is not powered off yet, it may be one of two possibilities:
+	; - ACPI shutdown somehow failed.
+	; - We need to do PM1b_control_block too.
+	; Luckily for us, ACPI says that if PM1b_control_block is not zero, we need to write the value to it too.
+	; This means that if PM1b_control_block is zero and we're still not powered off, then shutdown failed.
 
 	mov edx, [acpi_fadt.pm1b_control_block]
-	mov ax, [.b]
+	cmp edx, 0
+	je .fail
+	in ax, dx
+	and ax, 0x203
+	or ah, ch
 	out dx, ax
 
 .fail:
@@ -509,7 +576,7 @@ acpi_shutdown:
 
 .a				dw 0
 .b				dw 0
-.debug				db "acpi: entering sleep state S5...",10,0
+.debug				db "acpi: power off.",10,0
 .fail_msg			db "acpi: failed.",10,0
 
 ; acpi_reset:

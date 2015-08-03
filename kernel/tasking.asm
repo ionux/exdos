@@ -58,7 +58,6 @@ load_tss:
 
 	pushfd
 	pop eax
-	;or eax, 0x20202			; v8086, just for debugging..
 	or eax, 0x202
 	mov dword[tss.eflags], eax
 
@@ -273,7 +272,7 @@ program_header_size		= $ - program_header
 ; In\	ESI = Program path with parameters
 ; In\	EBX = Program return address
 ; Out\	EAX = Program exit code
-; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist, 0xDEADC0DE if program caused errors
+; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist, 0xDEADC0DE if program caused errors, 0xBADC0DE if program is corrupt, 0xFFFFFFFF if program can't fit in memory
 
 execute_program:
 	mov [program_name], esi
@@ -290,44 +289,63 @@ execute_program:
 	cmp eax, 0
 	jne .not_found
 
-	mov [.size], ecx
-	mov eax, [.size]
+	mov esi, 0x40000
+	mov edi, program_header
+	mov ecx, program_header_size
+	rep movsb
+
+	mov esi, program_header.magic
+	mov edi, .program_magic
+	mov ecx, 5
+	rep cmpsb
+	jne .corrupt
+
+	cmp byte[program_header.type], 0
+	jne .corrupt
+
+	mov eax, [program_header.program_size]
+	test eax, 0xFFF			; program size must be multiple of 4 KB
+	jnz .corrupt
+
+	mov eax, [program_header.program_size]
 	mov ebx, 1024
 	mov edx, 0
 	div ebx
 	mov ebx, 4
 	mov edx, 0
 	div ebx
+	mov [.size], eax
 
-	add eax, 4
-	mov [program_blocks], eax
-
-	mov eax, 0x1400000
-	mov ecx, [program_blocks]
+	mov ecx, [.size]		; enough memory for the program
+	mov eax, 0x1400000		; look for free memory starting at 20 MB
 	call pmm_find_free_block
-	jc out_of_memory
+	jc .too_little_memory
 
-	mov ebx, 0x8000000			; map the program to 128 MB
-	mov ecx, [program_blocks]
-	mov edx, 7
+	mov ebx, 0x8000000		; map the program to 128 MB
+	mov ecx, [.size]
+	mov edx, 7			; present | user | read/write
 	call vmm_map_memory
 
 	mov esi, 0x40000
 	mov edi, 0x8000000
-	mov ecx, [.size]
+	mov ecx, [program_header.program_size]
 	rep movsb
 
-	mov byte[is_program_running], 1
-
 	call enter_ring3
-	call 0x8000000
 
-.return:
-	;jmp $			; for debugging...
+	mov byte[is_program_running], 1
+	mov eax, [program_header.entry_point]
+	call eax
+
+	pusha
 	call enter_ring0
+	popa
+
+	mov eax, 0x8000000
+	mov ecx, [.size]
+	call vmm_unmap_memory		; free the memory used by the program
 
 	mov byte[is_program_running], 0
-	;mov eax, ebx		; C/C++ returns exit codes in EAX, not EBX
 	mov ebx, 0
 	ret
 
@@ -337,6 +355,19 @@ execute_program:
 	mov ebx, 0xDEADBEEF
 	ret
 
+.corrupt:
+	mov byte[is_program_running], 0
+	mov eax, 0
+	mov ebx, 0xBADC0DE
+	ret
+
+.too_little_memory:
+	mov byte[is_program_running], 0
+	mov eax, 0
+	mov ebx, 0xFFFFFFFF
+	ret
+
+.program_magic			db "ExDOS"
 .size				dd 0
 
 

@@ -63,6 +63,13 @@ vmm_init:
 	mov edx, 3				; 3 = read/write for kernel only
 	call vmm_map_memory
 
+	; identify page the kernel debugger, but without write access to the user
+	mov eax, kdebugger_location
+	mov ebx, kdebugger_location
+	mov ecx, 32
+	mov edx, 5				; user, present, read-only
+	call vmm_map_memory
+
 	mov byte[is_paging_enabled], 1
 
 	mov eax, page_directory
@@ -70,6 +77,7 @@ vmm_init:
 
 	mov eax, cr0
 	or eax, 0x80000000			; set bit 31 (Paging) bit
+	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
 	mov cr0, eax
 
 	ret

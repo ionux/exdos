@@ -298,6 +298,7 @@ use32
 	mov eax, 0xC00000			; 12 MB
 	mov ecx, [.size]
 	call pmm_find_free_block
+	jc .too_little_memory
 	mov ebx, [screen.framebuffer]
 	mov ecx, [.size]
 	mov edx, 3
@@ -319,6 +320,17 @@ use32
 	mov eax, 0
 	ret
 
+.too_little_memory:
+	call text_mode
+	call go16
+
+use16
+
+	mov si, .too_little_mem_msg
+	call print_string_16
+
+	jmp $
+
 .size			dd 0
 .width			dw 0
 .height			dw 0
@@ -331,6 +343,9 @@ use32
 .debug_msg3		db "vbe: done, mode number ",0
 .debug_msg4		db ", framebuffer at ",0
 .debug_msg5		db "vbe: failed to set SVGA mode.",10,0
+.too_little_mem_msg	db "Boot failed: Not enough memory for VESA framebuffer found.",0
+
+use32
 
 ; text_mode:
 ; Sets VGA text mode 80x25 16 colors

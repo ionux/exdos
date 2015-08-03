@@ -80,13 +80,26 @@ cmd:
 	je kdebug
 
 	mov esi, input_buffer
+	mov edi, meminfo_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je meminfo
+
+	mov esi, input_buffer
 	os_api execute_program
 
 	cmp ebx, 0
 	je cmd
 
 	cmp ebx, 0xDEADC0DE
-	je error
+	je error_program
+
+	cmp ebx, 0xBADC0DE
+	je corrupt_program
+
+	cmp ebx, 0xFFFFFFFF
+	je mem_error_program
 
 	mov esi, bad_command
 	mov ecx, 0
@@ -98,8 +111,30 @@ cmd:
 
 	jmp cmd
 
-error:
+error_program:
 	mov esi, error_msg
+	mov ecx, 0
+	mov edx, 0x9F2020
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+
+	jmp cmd
+
+corrupt_program:
+	mov esi, corrupt_msg
+	mov ecx, 0
+	mov edx, 0x9F2020
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+
+	jmp cmd
+
+mem_error_program:
+	mov esi, not_enough_mem_msg
 	mov ecx, 0
 	mov edx, 0x9F2020
 	os_api print_string_cursor
@@ -133,12 +168,96 @@ reboot_:
 	os_api reboot
 
 kdebug:
-	mov esi, 0x20000
+	os_api kdebug_get_location		; get location of kernel debugger in EAX
+
+	mov esi, eax
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor		; and print all debug messages :)
+
+	jmp cmd
+
+meminfo:
+	os_api get_memory_info
+	mov [.total], eax
+	mov [.free], ebx
+	mov [.used], ecx
+
+	mov eax, [.total]
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	mov [.total], eax
+
+	mov eax, [.free]
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	mov [.free], eax
+
+	mov eax, [.used]
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	mov [.used], eax
+
+	mov esi, .total_memory
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov ebx, [.total]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, .mb
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, .free_memory
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov ebx, [.free]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, .mb
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, .used_memory
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov ebx, [.used]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, .mb
 	mov ecx, 0
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	jmp cmd
+
+.total			dd 0
+.free			dd 0
+.used			dd 0
+.total_memory		db "Total memory: ",0
+.used_memory		db "Used memory: ",0
+.free_memory		db "Free memory: ",0
+.mb			db " MB",10,0
 
 crlf			db 13,10,0
 title_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
@@ -148,11 +267,14 @@ prompt			db ">",0
 bad_command		db "No such command or file name.",0
 error_msg		db "This program has caused an error and has been forcefully terminated.",13,10
 			db "Run kdebug for more information.",0
+corrupt_msg		db "Program file is corrupt or not valid.",0
+not_enough_mem_msg	db "Program is too large to fit in memory.",0
 help_command		db "help",0
 clear_command		db "clear",0
 exit_command		db "exit",0
 kdebug_command		db "kdebug",0
 reboot_command		db "reboot",0
+meminfo_command		db "meminfo",0
 help_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db "Command list:",13,10,13,10
 			db " clear        -- Clears the screen",13,10

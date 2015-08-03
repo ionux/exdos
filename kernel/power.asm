@@ -60,7 +60,13 @@ shutdown:
 	cmp byte[is_program_running], 0
 	jne .program
 
-	; dim the display and print "It's now safe to power off."
+	call apm_shutdown		; try APM BIOS shutdown
+
+	; if that didn't work, print "It's safe to power off" before trying ACPI shutdown.
+	; this is because on systems where ACPI shutdown doesn't work, the system just halted.
+	; so we need to print the message before trying to do ACPI shutdown.
+
+	; dim the display
 	mov ebx, 0
 	mov cx, 0
 	mov dx, 0
@@ -75,6 +81,7 @@ shutdown:
 	mov edi, [screen.height]
 	call alpha_fill_rect
 
+	; draw the blue square
 	call get_screen_center
 	sub bx, 159
 	sub cx, 32
@@ -82,9 +89,10 @@ shutdown:
 	mov edi, 64
 	mov dx, cx
 	mov cx, bx
-	mov ebx, 0x80
+	mov ebx, 0x000080
 	call alpha_fill_rect
 
+	; print the message
 	call get_screen_center
 	sub bx, 139
 	sub cx, 7
@@ -99,14 +107,10 @@ shutdown:
 	mov esi, .safe_msg
 	call print_string_transparent
 
-	call apm_shutdown		; try APM BIOS shutdown
-	call acpi_shutdown		; if that didn't work, try ACPI shutdown
+	call acpi_shutdown		; and try ACPI shutdown
 
-	sti
-
-.halt:
-	hlt				; save energy...
-	jmp .halt
+	; if all failed, restart
+	call reboot
 
 .program:
 	mov esi, .error_msg

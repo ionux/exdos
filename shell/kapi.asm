@@ -16,7 +16,7 @@ use32
 execute_program			= 0
 get_memory_info			= 1
 get_kernel_info			= 2
-;run_v8086			= 3
+kdebug_get_location		= 3
 
 ; Display routines
 clear_screen			= 4

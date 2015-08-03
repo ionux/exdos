@@ -348,8 +348,6 @@ align 32
 
 memory_map:			rq 64				; 1 KB of space for E820 memory map
 
-align 4096
-
 page_directory			= 0x70000
 
 page_table			= 0x100000			; page table takes up 4 MB of RAM

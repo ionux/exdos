@@ -63,7 +63,7 @@ os_api_table:
 	dd execute_program
 	dd mem_info
 	dd kernel_info
-	dd 0			; TO-DO: This should be run_v8086, but when v8086 monitor is completed...
+	dd kdebug_get_location			; Changed my mind, v8086 should be available for drivers only, not programs.
 
 	; Display routines
 	dd clear_screen
@@ -87,15 +87,35 @@ os_api_table:
 	; String-based routines
 	dd get_string_size
 	dd chomp_string
-	dd int_to_string
-	dd hex_byte_to_string
-	dd hex_word_to_string
-	dd hex_dword_to_string
+	dd .int_to_string
+	dd .hex_byte_to_string
+	dd .hex_word_to_string
+	dd .hex_dword_to_string
 	dd compare_strings
 
 	; Power-based routines
 	dd reboot
 	dd shutdown
+
+.int_to_string:
+	mov eax, ebx
+	call int_to_string
+	ret
+
+.hex_byte_to_string:
+	mov eax, ebx
+	call hex_byte_to_string
+	ret
+
+.hex_word_to_string:
+	mov eax, ebx
+	call hex_word_to_string
+	ret
+
+.hex_dword_to_string:
+	mov eax, ebx
+	call hex_dword_to_string
+	ret
 
 ; mem_info:
 ; Gets memory information
