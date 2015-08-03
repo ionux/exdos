@@ -26,7 +26,7 @@ use16
 	mov ax, 0x5300		; check if APM BIOS is supported
 	mov bx, 0
 	int 0x15
-	jnc .return
+	jc .return
 
 	cmp ah, 1		; we need at least APM version 1.2 to shut down
 	jl .return
