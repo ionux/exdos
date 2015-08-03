@@ -33,9 +33,8 @@ Requirements
 ============
 - **CPU:** Intel Pentium II with SSE or better, or AMD equivalent.
 - **RAM:** Approx. 32 MB more than VGA memory.
-- **Graphics:** VESA 2.0-compatible BIOS, with at ~2 MB of VGA RAM (for 640x480x32bpp.)
-- **PS/2 keyboard.**
-- **PCI bus.**
+- **Disk space:** 1 MB.
+- **Graphics:** VESA 2.0-compatible card with 2 MB of VGA memory.
 
 About
 =====
