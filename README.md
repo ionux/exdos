@@ -31,7 +31,7 @@ TO-DO
 
 Requirements
 ============
-- **CPU:** Intel Pentium II with SSE or better, or AMD equivalent.
+- **CPU:** Intel Pentium II or better with SSE support, or AMD equivalent.
 - **RAM:** Approx. 32 MB more than VGA memory.
 - **Disk space:** 1 MB.
 - **Graphics:** VESA 2.0-compatible card with 2 MB of VGA memory.
