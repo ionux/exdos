@@ -7,7 +7,7 @@ Features
 ========
 - Boots in less than 5 seconds on most hardware.
 - Ring 3 protection.
-- ACPI (with shutdown!)
+- ACPI (with shutdown and reset!)
 - PCI driver.
 - PS/2 keyboard driver.
 - BIOS disk access.
