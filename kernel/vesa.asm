@@ -139,6 +139,9 @@ use16
 	cmp ax, 0x4F
 	jne .vesa_error
 
+	cmp [vesa_info_block.version], 0x200	; if the VESA version is less than 2.0 --
+	jl .vesa_error				; -- throw an error
+
 	mov ax, word[vesa_info_block.memory]
 	mov [vga_memory_64kb], ax
 

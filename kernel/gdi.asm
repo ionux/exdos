@@ -662,7 +662,7 @@ scroll_screen_graphics:
 	loop .clear_bottom_line
 
 .done:
-	call redraw_screen
+	;call redraw_screen	; not doing this saves A LOT of performance!
 	popa
 	ret
 	

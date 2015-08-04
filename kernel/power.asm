@@ -120,7 +120,13 @@ shutdown:
 
 	cli
 	call acpi_shutdown		; and try ACPI shutdown
-	call reboot			; if all failed, reboot
+
+	; if all failed, just hang
+	sti
+
+.hang:
+	hlt
+	jmp .hang
 
 .program:
 	mov esi, .error_msg

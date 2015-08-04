@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Monday, 3rd August, 2015"
+define TODAY "Tuesday, 4th August, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1
@@ -153,7 +153,7 @@ get_vesa_mode_loop:
 			db " [3] 1024x768",13,10
 			db " [4] 1366x768",13,10
 			db "Your choice: ",0
-.bad_resol_msg		db "This resolution is not supported by your hardware or display.",13,10
+.bad_resol_msg		db "This resolution is not supported by your graphics card or your display.",13,10
 			db "Please try another resolution.",13,10,0
 
 enter_pmode:
