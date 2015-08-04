@@ -471,9 +471,6 @@ use32
 remap_pic:
 	cli
 
-	mov esi, .debug_msg
-	call kdebug_print
-
 	; remap the IRQs on the PIC
 	mov al, 0x11
 	out 0x20, al
@@ -534,10 +531,17 @@ remap_pic:
 	jmp .loop
 	
 .done:
+	mov esi, .debug_msg
+	call kdebug_print
+
+	mov esi, .debug_msg2
+	call kdebug_print
+
 	;sti
 	ret
 	
-.debug_msg					db "kernel: remapped PIC #1 offset to INT 32.",10,0
+.debug_msg					db "kernel: remapped PIC #1 offset to INT 20.",10,0
+.debug_msg2					db "kernel: remapped PIC #2 offset to INT 28.",10,0
 .irq						dd 0
 
 ; init_pit:
@@ -673,6 +677,46 @@ rand:
 .range			dd 0
 .low			dd 0
 .high			dd 0
+
+; srand:
+; Generates a signed random number between a specified range
+; In\	ECX = Low range
+; In\	EDX = High range
+; Out\	EAX = Random number
+
+srand:
+	mov [.low], ecx
+	mov [.high], edx
+
+	mov ecx, 0
+	mov edx, 100
+	call rand
+
+	test eax, 1
+	jz .positive
+
+	mov ecx, [.low]
+	mov edx, [.high]
+	and ecx, 0x80000000
+	and edx, 0x80000000
+	call rand
+
+	or eax, 0x80000000
+	ret
+
+.positive:
+	mov ecx, [.low]
+	mov edx, [.high]
+	and ecx, 0x80000000
+	and edx, 0x80000000
+	call rand
+
+	and eax, 0x7FFFFFFF
+	ret
+
+.low			dd 0
+.high			dd 0
+
 
 ; gdt:
 ; Global Descriptor Table

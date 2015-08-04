@@ -30,18 +30,18 @@ init_serial:
 
 	mov byte[is_there_serial], 1
 
-	mov al, 0
-	mov dx, [serial_ioport]
-	out dx, al
+	;mov al, 0
+	;mov dx, [serial_ioport]
+	;out dx, al
 
 	mov al, 0x80
 	mov dx, [serial_ioport]
 	add dx, 3
 	out dx, al
 
-	mov al, 2
-	mov dx, [serial_ioport]
-	out dx, al
+	;mov al, 2
+	;mov dx, [serial_ioport]
+	;out dx, al
 
 	mov al, 0
 	mov dx, [serial_ioport]

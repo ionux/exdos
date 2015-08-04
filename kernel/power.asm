@@ -118,10 +118,9 @@ shutdown:
 	mov esi, .safe_msg
 	call print_string_transparent
 
+	cli
 	call acpi_shutdown		; and try ACPI shutdown
-
-	; if all failed, restart
-	call reboot
+	call reboot			; if all failed, reboot
 
 .program:
 	mov esi, .error_msg

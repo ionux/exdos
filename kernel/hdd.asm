@@ -35,6 +35,16 @@ disk_size_mb			dd 0
 ; Initializes the hard disk
 
 init_hdd:
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov al, [bootdisk]
+	call hex_byte_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	call go16
 
 use16
@@ -76,18 +86,33 @@ use32
 
 	mov [disk_size_mb], eax
 
-	cli
+	mov esi, .debug_msg2
+	call kdebug_print
+
+	mov eax, [disk_size_mb]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print_noprefix
+
 	ret
 
 use16
 
 .fail:
+	mov ax, 3
+	int 0x10
+
 	mov si, .fail_msg
 	call print_string_16
 
 	jmp $
 
 .fail_msg			db "Boot error: Hard disk failure.",0
+.debug_msg1			db "hdd: BIOS boot drive number is ",0
+.debug_msg2			db "hdd: disk size is ",0
+.debug_msg3			db " MB.",10,0
 
 use32
 

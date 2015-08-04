@@ -46,6 +46,8 @@ unhandled_isr:
 	popa
 	iret
 
+.msg			db "KOE",0
+
 ; pit_irq:
 ; PIT IRQ 0 handler
 

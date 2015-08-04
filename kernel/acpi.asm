@@ -446,6 +446,29 @@ init_acpi_power:
 	or ax, 0x2000					; set bit 13 (SLP_EN)
 	mov [acpi_slp_en], ax
 
+	mov esi, .irq_msg
+	call kdebug_print
+
+	movzx eax, [acpi_fadt.sci_interrupt]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .int_msg
+	call kdebug_print_noprefix
+
+	mov ax, [acpi_fadt.sci_interrupt]
+	add ax, 32
+	call hex_byte_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	mov ax, [acpi_fadt.sci_interrupt]
+	add ax, 32					; we mapped IRQ 0-15 to INT 32-47
+	mov ebp, acpi_irq				; install the IRQ handler
+	call install_isr
+
 	ret
 
 .checksum_error:
@@ -472,11 +495,11 @@ init_acpi_power:
 	jmp $
 
 .bad_s5:
-	mov word[acpi_slp_typa], 0
+	mov word[acpi_slp_typa], 0xFFFF
 	ret
 
 .no_s5:
-	mov word[acpi_slp_typa], 0
+	mov word[acpi_slp_typa], 0xFFFF
 	ret
 
 .facp				db "FACP"
@@ -490,6 +513,8 @@ init_acpi_power:
 .debug_msg2			db "acpi: system is already in ACPI mode.",10,0
 .debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
 .debug_msg4			db "acpi: DSDT found at ",0
+.irq_msg			db "acpi: using IRQ ",0
+.int_msg			db ", INT ",0
 
 acpi_s5				dd 0
 acpi_slp_typa			dw 0
@@ -504,6 +529,9 @@ acpi_shutdown:
 
 	mov esi, .debug
 	call kdebug_print
+
+	cmp word[acpi_slp_typa], 0xFFFF
+	je .fail
 
 	; First, we need to write the value SLP_TYPa into the PM1a_control_block
 	mov cx, [acpi_slp_typa]
@@ -558,6 +586,7 @@ acpi_reset:
 	test eax, 0x400						; is the reset register supported?
 	jz .fail
 
+	; The ACPI reset can only be done via memory mapped I/O, the I/O bus, or the PCI bus.
 	cmp byte[acpi_reset_register.address_space], 0		; memory mapped I/O
 	je .memory
 
@@ -577,12 +606,33 @@ acpi_reset:
 	cmp dword[acpi_reset_register.address], 0
 	je .fail
 
-	cmp dword[acpi_reset_register.access_size], 0
+	cmp byte[acpi_reset_register.access_size], 0
 	je .fail
 
 	mov edi, dword[acpi_reset_register.address]
-	mov al, [acpi_reset_value]
-	stosb							; system should be powered off now
+	movzx eax, byte[acpi_reset_value]
+
+	cmp byte[acpi_reset_register.access_size], 1
+	je .memory_byte
+
+	cmp byte[acpi_reset_register.access_size], 2
+	je .memory_word
+
+	cmp byte[acpi_reset_register.access_size], 3
+	je .memory_dword
+
+	jmp .fail
+
+.memory_byte:
+	stosb
+	jmp .fail
+
+.memory_word:
+	stosw
+	jmp .fail
+
+.memory_dword:
+	stosd
 	jmp .fail
 
 .io:
@@ -590,8 +640,29 @@ acpi_reset:
 	call kdebug_print
 
 	mov edx, dword[acpi_reset_register.address]
-	mov al, [acpi_reset_value]
+	movzx eax, byte[acpi_reset_value]
+
+	cmp byte[acpi_reset_register.access_size], 1
+	je .io_byte
+
+	cmp byte[acpi_reset_register.access_size], 2
+	je .io_word
+
+	cmp byte[acpi_reset_register.access_size], 3
+	je .io_dword
+
+	jmp .fail
+
+.io_byte:
 	out dx, al
+	jmp .fail
+
+.io_word:
+	out dx, ax
+	jmp .fail
+
+.io_dword:
+	out dx, eax
 
 .fail:
 	mov esi, .debug_msg2
@@ -604,6 +675,52 @@ acpi_reset:
 .debug_msg3			db "acpi: memory mapped reset...",10,0
 .debug_msg4			db "acpi: I/O bus reset...",10,0
 ;.debug_msg5			db "acpi: PCI bus reset...",10,0
+
+; acpi_irq:
+; ACPI IRQ handler
+
+acpi_irq:
+	pusha
+	push ds
+	push es
+	push fs
+	push gs
+
+	mov ax, 0x10
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	mov esi, .debug_msg
+	call kdebug_print
+
+	cmp word[acpi_fadt.sci_interrupt], 8
+	jge .slave
+
+	mov al, 0x20
+	out 0x20, al
+
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popa
+	iret
+
+.slave:
+	mov al, 0x20
+	out 0xA0, al
+	out 0x20, al
+
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	popa
+	iret
+
+.debug_msg			db "acpi: ACPI IRQ received.",10,0
 
 align 32
 

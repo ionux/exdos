@@ -45,9 +45,30 @@ kdebug_init:
 	mov esi, _crlf
 	call kdebug_print_noprefix
 
+	cmp byte[is_there_serial], 0
+	je .no_serial_
+
+	mov esi, .serial
+	call kdebug_print
+
+	mov ax, [serial_ioport]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	ret
+
+.no_serial_:
+	mov esi, .no_serial
+	call kdebug_print
+
 	ret
 
 .done_msg			db "kernel: kernel debugger started at address ",0
+.serial				db "serial: base IO port is ",0
+.no_serial			db "serial: no serial port present.",10,0
 
 ; kdebug_get_location:
 ; Gets location of kernel debugger
