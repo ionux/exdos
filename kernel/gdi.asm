@@ -903,34 +903,13 @@ fill_rect:
 ; Out\	EAX = Blended color
 
 alpha_blend_colors:
-	; TO-DO: Optimize this routine, as it currently causes too much loss of performance.
-	mov [.source], eax
-	mov [.dest], ebx
-
-	shr byte[.source.blue], 1
-	shr byte[.source.green], 1
-	shr byte[.source.red], 1
-	shr byte[.dest.blue], 1
-	shr byte[.dest.green], 1
-	shr byte[.dest.red], 1
-
-	mov eax, dword[.source]
-	mov ebx, dword[.dest]
+	and eax, 0xFEFEFE
+	and ebx, 0xFEFEFE
+	shr eax, 1
+	shr ebx, 1
 	add eax, ebx
 
 	ret
-
-.source:
-.source.blue		db 0
-.source.green		db 0
-.source.red		db 0
-.source.alpha		db 0
-
-.dest:
-.dest.blue		db 0
-.dest.green		db 0
-.dest.red		db 0
-.dest.alpha		db 0
 
 ; alpha_draw_horz_line:
 ; Draws a horizontal line with alpha blending

@@ -231,17 +231,23 @@ use32
 
 	call init_hdd				; initialize hard disk
 
+	mov eax, 0x2000000
+	mov ebx, 0x2000000
+	mov ecx, 512
+	mov edx, 3
+	call vmm_map_memory
+
 	mov esi, bootlogo
-	mov edi, disk_buffer
+	mov edi, 0x2000000
 	call load_file
 
 	cmp eax, 0
 	jne .continue_booting
 
 	call get_screen_center
-	sub bx, 64
-	sub cx, 64
-	mov esi, disk_buffer
+	sub bx, 137
+	sub cx, 69
+	mov esi, 0x2000000
 	call draw_image
 
 .continue_booting:
@@ -252,6 +258,10 @@ use32
 	mov edx, 0x606060
 	mov esi, _copyright
 	call print_string_transparent
+
+	mov eax, 0x2000000
+	mov ecx, 512
+	call vmm_unmap_memory
 
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
