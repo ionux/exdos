@@ -28,12 +28,6 @@ use16
 	int 0x15
 	jc .return
 
-	cmp ah, 1		; we need at least APM version 1.2 to shut down
-	jl .return
-
-	cmp al, 2
-	jl .return
-
 	mov ax, 0x5301		; connect to APM real mode interface
 	mov bx, 0
 	int 0x15

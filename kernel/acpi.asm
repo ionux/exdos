@@ -525,8 +525,6 @@ acpi_slp_en			dw 0
 ; Shuts down the system using ACPI
 
 acpi_shutdown:
-	;sti
-
 	mov esi, .debug
 	call kdebug_print
 
