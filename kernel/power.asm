@@ -71,7 +71,7 @@ shutdown:
 	mov esi, .debug_msg
 	call kdebug_print
 
-	;call apm_shutdown		; try APM BIOS shutdown
+	call apm_shutdown		; try APM BIOS shutdown
 
 	; if that didn't work, print "It's safe to power off" before trying ACPI shutdown.
 	; this is because on systems where ACPI shutdown doesn't work, the system just halted.
@@ -119,7 +119,7 @@ shutdown:
 	call print_string_transparent
 
 	cli
-	;call acpi_shutdown		; and try ACPI shutdown
+	call acpi_shutdown		; and try ACPI shutdown
 
 	; if all failed, just hang
 	sti
