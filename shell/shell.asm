@@ -87,6 +87,20 @@ cmd:
 	je meminfo
 
 	mov esi, input_buffer
+	mov edi, time_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je time
+
+	mov esi, input_buffer
+	mov edi, date_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je date
+
+	mov esi, input_buffer
 	os_api execute_program
 
 	cmp ebx, 0
@@ -259,6 +273,26 @@ meminfo:
 .free_memory		db "Free memory: ",0
 .mb			db " MB",10,0
 
+time:
+	os_api get_time_string_12
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+	jmp cmd
+
+date:
+	os_api get_long_date_string
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+	jmp cmd
+
 crlf			db 13,10,0
 title_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db "(C) 2015 by Omar Mohammad.",13,10
@@ -275,12 +309,16 @@ exit_command		db "exit",0
 kdebug_command		db "kdebug",0
 reboot_command		db "reboot",0
 meminfo_command		db "meminfo",0
+time_command		db "time",0
+date_command		db "date",0
 help_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db "Command list:",13,10,13,10
 			db " clear        -- Clears the screen",13,10
+			db " date         -- Shows the date",13,10
 			db " exit         -- Shuts down the system",13,10
 			db " kdebug       -- Shows kernel messages",13,10
-			db " reboot       -- Reboots the PC",0
+			db " reboot       -- Reboots the PC",13,10
+			db " time         -- Shows the time",0
 
 input_buffer:
 

@@ -19,8 +19,6 @@ serial_ioport				dw 0
 ; Initializes the serial port
 
 init_serial:
-	cli
-
 	mov edi, 0x400
 	cmp word[edi], 0
 	je .no_serial

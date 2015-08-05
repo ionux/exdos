@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function		= 27
+os_api_max_function		= 35
 
 ; os_api:
 ; Kernel API Entry Point
@@ -96,6 +96,16 @@ os_api_table:
 	; Power-based routines
 	dd reboot
 	dd shutdown
+
+	; Time-based routines
+	dd get_time_24
+	dd get_time_12
+	dd get_time_string_24
+	dd get_time_string_12
+	dd get_date
+	dd get_date_string_am
+	dd get_date_string_me
+	dd get_long_date_string
 
 .int_to_string:
 	mov eax, ebx

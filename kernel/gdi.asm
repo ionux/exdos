@@ -58,9 +58,10 @@ redraw_screen:
 	mul ebx
 	add eax, dword[screen.bytes_per_line]
 
-	mov ebx, 16
-	mov edx, 0
-	div ebx
+	;mov ebx, 16
+	;mov edx, 0
+	;div ebx
+	shr eax, 4		; quick divide by 16
 
 	mov ecx, eax
 	mov esi, [screen.framebuffer]
@@ -686,15 +687,16 @@ clear_screen:
 	mov eax, [screen.height]
 	mov ebx, [screen.bytes_per_line]
 	mul ebx
-	;add eax, dword[screen.bytes_per_line]
+	add eax, dword[screen.bytes_per_line]
 
 	cmp dword[screen.bpp], 32
 	jne .24
 
 .32:
-	mov ebx, 4
-	mov edx, 0
-	div ebx
+	;mov ebx, 4
+	;mov edx, 0
+	;div ebx
+	shr eax, 2		; quick divide by 4
 
 	mov ecx, eax
 
@@ -771,7 +773,7 @@ draw_horz_line:
 	mov eax, [.color]
 	stosd
 	cmp edi, [.end_offset]
-	je .done
+	jge .done
 	jmp .32
 
 .24:
@@ -782,7 +784,7 @@ draw_horz_line:
 	shr eax, 8
 	stosb
 	cmp edi, [.end_offset]
-	je .done
+	jge .done
 	jmp .24
 
 .done:
@@ -973,7 +975,7 @@ alpha_draw_horz_line:
 	call alpha_blend_colors
 	stosd
 	cmp edi, [.end_offset]
-	je .done
+	jge .done
 	jmp .32
 
 .24:
@@ -987,7 +989,7 @@ alpha_draw_horz_line:
 	shr eax, 8
 	stosb
 	cmp edi, [.end_offset]
-	je .done
+	jge .done
 	jmp .24
 
 .done:
@@ -1035,9 +1037,10 @@ alpha_fill_rect:
 
 .32:
 	mov eax, [.size]
-	mov ebx, 4
-	mov edx, 0
-	div ebx
+	;mov ebx, 4
+	;mov edx, 0
+	;div ebx
+	shr eax, 2		; quick divide by 4
 	mov [.size], eax
 
 .32_stub:

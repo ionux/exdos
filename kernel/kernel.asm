@@ -255,11 +255,11 @@ use32
 
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
-	call init_cmos				; initialize CMOS RTC clock
 	call init_cpuid				; get CPU brand
 	call detect_cpu_speed			; get CPU speed
 	call init_acpi				; initialize ACPI
 	call init_acpi_power			; initialize ACPI power management
+	call init_cmos				; initialize CMOS RTC clock
 	;call init_pcie				; PCI Express is not yet implemented
 	call init_pci				; initialize legacy PCI
 	;call ata_init				; initialize IDE ATA controller

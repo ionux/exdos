@@ -50,6 +50,16 @@ compare_strings			= 25
 reboot				= 26
 shutdown			= 27
 
+; Time-based routines
+get_time_24			= 28
+get_time_12			= 29
+get_time_string_24		= 30
+get_time_string_12		= 31
+get_date			= 32
+get_date_string_am		= 33
+get_date_string_me		= 34
+get_long_date_string		= 35
+
 macro os_api function_number {
 	mov eax, function_number
 	call 0x520
