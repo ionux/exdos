@@ -73,29 +73,12 @@ use16
 
 use32
 
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
 	mov esi, .no_pci_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	call kdebug_print
 
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	ret
 
-	sti
-	jmp $
-
-.no_pci_msg			db "Boot error: No proper PCI bus was found onboard.",0
+.no_pci_msg			db "pci: PCI BIOS is not present, assuming PCI is not present either...",10,0
 .debug_msg1			db "pci: PCI BIOS v",0
 .debug_msg2			db ".",0
 .debug_msg3			db " present.",10,0

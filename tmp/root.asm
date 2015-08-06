@@ -30,4 +30,15 @@ date		db 			20		; day
 		db			6		; month
 		dw 			2015		; year
 
+		db			"wp      bmp"
+		dd			1024
+		dd			2813
+		dd			1440122
+		db			11		; hour
+		db			36		; minute
+		db 			20		; day
+		db			6		; month
+		dw 			2015		; year
+
+
 

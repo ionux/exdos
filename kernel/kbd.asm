@@ -361,11 +361,13 @@ get_char_no_wait:
 
 get_char_wait:
 	sti
+
+.wait:
 	hlt					; halting saves energy and cools down the CPU
 						; it also speeds up some emulators like Bochs
 
 	cmp byte[last_character], 0
-	je get_char_wait
+	je .wait
 
 	mov al, byte[last_character]
 	mov ah, byte[last_scancode]

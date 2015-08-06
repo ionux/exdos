@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Tuesday, 4th August, 2015"
+define TODAY "Thursday, 6th August, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1
@@ -70,7 +70,7 @@ kmain16:
 	call enable_a20				; enable A20 gate
 	call check_a20				; check A20 status
 	call detect_memory			; detect memory using E820, and use E801 if E820 fails
-	call verify_enough_memory		; verify we have enough usable RAM
+	;call verify_enough_memory		; verify we have enough usable RAM
 
 get_vesa_mode_loop:
 	mov byte[is_paging_enabled], 0

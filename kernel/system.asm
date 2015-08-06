@@ -466,7 +466,7 @@ use16
 use32
 
 ; remap_pic:
-; Remaps IRQ 0-8 to INT 32-47
+; Remaps vectors on the PIC
 
 remap_pic:
 	cli
@@ -501,7 +501,7 @@ remap_pic:
 	
 	mov al, 0
 	out 0xA1, al
-	
+
 	; remap the real mode IVT as well
 	mov dword[.irq], 8
 
@@ -531,18 +531,9 @@ remap_pic:
 	jmp .loop
 	
 .done:
-	mov esi, .debug_msg
-	call kdebug_print
-
-	mov esi, .debug_msg2
-	call kdebug_print
-
-	;sti
 	ret
 	
-.debug_msg					db "kernel: remapped PIC #1 offset to INT 20.",10,0
-.debug_msg2					db "kernel: remapped PIC #2 offset to INT 28.",10,0
-.irq						dd 0
+.irq				dd 0
 
 ; init_pit:
 ; Initializes the PIT to 100 Hz

@@ -84,22 +84,11 @@ redraw_screen:
 ; Out\	BX/CX = X/Y coordinates
 
 get_screen_center:
-	mov eax, [screen.width]
-	mov ebx, 2
-	mov edx, 0
-	div ebx
+	mov ebx, [screen.width]
+	mov ecx, [screen.height]
+	shr ebx, 1			; quick divide by 2
+	shr ecx, 1
 
-	mov [.x], ax
-
-	mov eax, [screen.height]
-	mov ebx, 2
-	mov edx, 0
-	div ebx
-
-	mov [.y], ax
-
-	mov bx, [.x]
-	mov cx, [.y]
 	ret
 
 .x			dw 0
@@ -242,8 +231,9 @@ put_char_transparent:
 	mov [.byte], al
 
 	mov eax, [screen.bytes_per_pixel]
-	mov ebx, 8
-	mul ebx
+	;mov ebx, 8
+	;mul ebx
+	shl eax, 3			; quick multiply by 8
 	sub dword[.offset], eax
 	mov eax, [screen.bytes_per_line]
 	add dword[.offset], eax
@@ -350,8 +340,9 @@ put_char:
 	mov [.byte], al
 
 	mov eax, [screen.bytes_per_pixel]
-	mov ebx, 8
-	mul ebx
+	;mov ebx, 8
+	;mul ebx
+	shl eax, 3			; quick multiply by 8
 	sub dword[.offset], eax
 	mov eax, [screen.bytes_per_line]
 	add dword[.offset], eax
@@ -379,31 +370,19 @@ put_char:
 
 put_char_cursor:
 	pusha
-	mov [.char], al
+	;mov [.char], al
 
-	cmp byte[.char], 8
+	cmp al, 8
 	je .backspace
 
-	movzx eax, byte[x_cur]
-	mov ebx, 8
-	mul ebx
-
-	mov [.x], eax
-
-	movzx eax, byte[y_cur]
-	mov ebx, 16
-	mul ebx
-
-	mov [.y], eax
-
-	popa
-	pusha
-	mov ebx, [.x]
-	mov ecx, [.y]
-	mov al, [.char]
+	movzx ebx, byte[x_cur]
+	movzx ecx, byte[y_cur]
+	shl ebx, 3
+	shl ecx, 4
+	;mov al, [.char]
 	call put_char
 
-	add byte[x_cur], 1
+	inc byte[x_cur]
 	popa
 	ret
 
@@ -411,15 +390,11 @@ put_char_cursor:
 	cmp byte[x_cur], 0
 	je .quit
 
-	sub byte[x_cur], 1
+	dec byte[x_cur]
 
 .quit:
 	popa
 	ret
-
-.char			db 0
-.x			dd 0
-.y			dd 0
 
 ; print_string_transparent:
 ; Prints a string with transparent background in graphical mode
@@ -666,7 +641,7 @@ scroll_screen_graphics:
 	;call redraw_screen	; not doing this saves A LOT of performance!
 	popa
 	ret
-	
+
 align 32			; If the memory is not properly aligned, MOVDQA fails
 
 .color				dq 0

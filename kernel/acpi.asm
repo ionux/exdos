@@ -16,6 +16,7 @@ acpi_reserved_memory		dd 0x100000		; reserve at least 1 MB for ACPI
 rsd_ptr				dd 0
 rsdt				dd 0
 rsdt_size			dd 0
+is_there_acpi			db 0
 
 ; init_acpi:
 ; Initializes ACPI
@@ -129,53 +130,18 @@ init_acpi:
 	add esi, eax
 	mov [rsdt_size], esi
 
+	mov byte[is_there_acpi], 1
 	ret
 
 .checksum_error:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
-	mov esi, .checksum_error_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	mov esi, .debug_msg6
+	call kdebug_print
 
 .no_acpi:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
+	mov esi, .debug_msg7
+	call kdebug_print
 
-	mov esi, .no_acpi_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	ret
 
 .rsd_ptr			db "RSD PTR "
 .rsdt_signature			db "RSDT"
@@ -184,8 +150,8 @@ init_acpi:
 .debug_msg3			db "acpi: ACPI revision ",0
 .debug_msg4			db ", OEM ID ",0
 .debug_msg5			db "acpi: RSDT found at ",0
-.checksum_error_msg		db "Boot error: ACPI checksum error.",0
-.no_acpi_msg			db "Boot error: This PC doesn't support ACPI.",0
+.debug_msg6			db "acpi: checksum error, ignoring ACPI tables...",10,0
+.debug_msg7			db "acpi: system doesn't support ACPI...",10,0
 .oemid:				times 7 db 0
 
 ; acpi_find_table:
@@ -264,6 +230,9 @@ acpi_find_table:
 ; Initialize ACPI power management
 
 init_acpi_power:
+	cmp byte[is_there_acpi], 1
+	jne .no_acpi
+
 	mov esi, .facp
 	call acpi_find_table
 
@@ -285,27 +254,11 @@ init_acpi_power:
 	jmp .verify_checksum
 
 .no_fadt:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
 	mov esi, .no_fadt_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	call kdebug_print
 
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	mov word[acpi_slp_typa], 0xFFFF
+	ret
 
 .verify_checksum:
 	mov esi, [.fadt]
@@ -472,27 +425,11 @@ init_acpi_power:
 	ret
 
 .checksum_error:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
+	mov esi, .debug_msg5
+	call kdebug_print
 
-	mov esi, .checksum_error_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
+	mov word[acpi_slp_typa], 0xFFFF
+	ret
 
 .bad_s5:
 	mov word[acpi_slp_typa], 0xFFFF
@@ -502,18 +439,21 @@ init_acpi_power:
 	mov word[acpi_slp_typa], 0xFFFF
 	ret
 
+.no_acpi:
+	mov word[acpi_slp_typa], 0xFFFF
+	ret
+
 .facp				db "FACP"
 .fadt				dd 0
-.no_fadt_msg			db "Boot error: ACPI FADT table not found.",0
-.checksum_error_msg		db "Boot error: ACPI FADT checksum error.",0
-.no_s5_msg			db "Boot error: ACPI \_S5 object not found.",0
-.s5_error_msg			db "Boot error: ACPI \_S5 object is corrupt.",0
 .s5_signature			db "_S5_",0
 .debug_msg1			db "acpi: FADT found at ",0
 .debug_msg2			db "acpi: system is already in ACPI mode.",10,0
 .debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
 .debug_msg4			db "acpi: DSDT found at ",0
 .irq_msg			db "acpi: using IRQ ",0
+.debug_msg5			db "acpi: checksum error...",10,0
+.no_fadt_msg			db "acpi: FADT not found.",10,0
+
 .int_msg			db ", INT ",0
 
 acpi_s5				dd 0
