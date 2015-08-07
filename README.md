@@ -29,6 +29,10 @@ TO-DO
 - NE2000 driver (for Bochs.)
 - Full TCP/IP implementation.
 
+Build instructions
+==================
+You will need [FASM](http://flatassembler.net/) to build ExDOS, as ExDOS is written in FASM. First, clone the repository, and `cd` to it. Then, run `chmod a+x mkdiskimage.sh`. After this, all that is needed is simply `./mkdiskimage.sh`. The newly made file `exdos.img` can be used with Bochs or QEMU as a hard disk image. For Bochs, the CHS values are 71/16/63, respectively.
+
 Requirements
 ============
 - **CPU:** Intel Pentium II or better with SSE support, or AMD equivalent.
