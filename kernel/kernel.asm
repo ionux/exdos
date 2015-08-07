@@ -70,7 +70,7 @@ kmain16:
 	call enable_a20				; enable A20 gate
 	call check_a20				; check A20 status
 	call detect_memory			; detect memory using E820, and use E801 if E820 fails
-	;call verify_enough_memory		; verify we have enough usable RAM
+	call verify_enough_memory		; verify we have enough usable RAM
 
 get_vesa_mode_loop:
 	mov byte[is_paging_enabled], 0
