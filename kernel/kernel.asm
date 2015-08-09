@@ -346,6 +346,7 @@ include				"kernel/apm.asm"		; APM BIOS
 ;include			"kernel/ahci.asm"		; SATA (AHCI) disk driver
 include				"kernel/drivers.asm"		; Driver interface
 include				"kernel/kdebug.asm"		; Kernel debugger
+include				"kernel/booterror.asm"		; Boot error UI
 
 db				"This program is property of Omar Mohammad.",0
 

@@ -26,8 +26,6 @@ filesystem_block:
 					db 6
 					dw 2015
 	.serial_number			dd 0x65A2B744
-	.spt				dw 63
-	.heads				dw 16
 	.volume_label			db "EXDOS   "
 	.filesystem_id			db "EXDFS   "
 
@@ -77,17 +75,18 @@ main:
 
 load_root_directory:
 	mov eax, 1
-	add eax, [partition.lba]
-	mov ebx, 29
+	add eax, dword[partition.lba]
+	mov ebx, 32
 	mov cx, 0x4000
 	mov dx, disk_buffer
 	call read_sectors
 	jc disk_error
 
 find_file:
-	mov si, disk_buffer
+	mov si, disk_buffer+32		; each directory entry is 32 bytes in size
+					; and the first entry is always reserved, so skip it
 	mov di, _kernel_filename
-	mov cx, 0
+	mov cx, 1
 
 .loop:
 	pusha
@@ -98,21 +97,21 @@ find_file:
 
 	add cx, 1
 	cmp cx, 512
-	je .file_not_found
+	je file_not_found
 
-	add si, 29
+	add si, 32
 	jmp .loop
 
 .found_file:
+	add si, 1
 	mov eax, dword[si]
-	add si, 4
-	mov ebx, dword[si]
-
-	mov cx, 0
-	mov dx, 0x500
+	mov ebx, dword[si+4]
+	mov cx, 0x50
+	mov dx, 0
 	call read_sectors
 	jc disk_error
 
+	popa
 	mov si, _crlf
 	call print
 
@@ -120,7 +119,7 @@ find_file:
 	mov dl, [bootdisk]
 	jmp 0:0x500
 
-.file_not_found:
+file_not_found:
 	mov si, _crlf
 	call print
 
@@ -128,6 +127,7 @@ find_file:
 	call print
 
 	jmp $
+
 
 disk_error:
 	mov si, _crlf

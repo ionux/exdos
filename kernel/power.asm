@@ -112,8 +112,8 @@ shutdown:
 	mov esi, .safe_msg
 	call print_string_transparent
 
-	call apm_shutdown		; try APM BIOS shutdown
-	call acpi_shutdown		; and try ACPI shutdown
+	call acpi_shutdown			; try ACPI shutdown
+	call apm_shutdown			; if that failed, try APM shutdown
 
 	; if all failed, just hang
 	sti

@@ -370,31 +370,95 @@ put_char:
 
 put_char_cursor:
 	pusha
-	;mov [.char], al
+	mov [.char], al
+
+	mov al, [.char]
+
+	cmp al, 13
+	je .carriage
+
+	cmp al, 10
+	je .newline
 
 	cmp al, 8
 	je .backspace
 
-	movzx ebx, byte[x_cur]
-	movzx ecx, byte[y_cur]
-	shl ebx, 3
-	shl ecx, 4
-	;mov al, [.char]
+	mov al, [x_cur]
+	cmp al, byte[x_cur_max]
+	jg .x_overflow
+
+.print:
+	movzx eax, [x_cur]
+	mov ebx, 8
+	mul ebx
+	mov [.x], eax
+
+	movzx eax, [y_cur]
+	mov ebx, 16
+	mul ebx
+	mov [.y], eax
+
+	mov ebx, [.x]
+	mov ecx, [.y]
+	mov al, [.char]
 	call put_char
 
-	inc byte[x_cur]
+	add byte[x_cur], 1
+
+	popa
+	ret
+
+.x_overflow:
+	mov byte[x_cur], 0
+	add byte[y_cur], 1
+
+	mov al, [y_cur]
+	cmp al, byte[y_cur_max]
+	jg .y_overflow
+	jmp .print
+
+.y_overflow:
+	call scroll_screen_graphics
+
+	jmp .print
+
+.carriage:
+	mov byte[x_cur], 0
+	popa
+	ret
+
+.newline:
+	mov byte[x_cur], 0
+	add byte[y_cur], 1
+
+	mov al, [y_cur]
+	cmp al, byte[y_cur_max]
+	jg .newline_y_overflow
+
+	popa
+	ret
+
+.newline_y_overflow:
+	call scroll_screen_graphics
+
 	popa
 	ret
 
 .backspace:
 	cmp byte[x_cur], 0
-	je .quit
+	je .no
 
-	dec byte[x_cur]
-
-.quit:
+	sub byte[x_cur], 1
 	popa
 	ret
+
+.no:
+	popa
+	ret
+
+.x			dd 0
+.y			dd 0
+.char			db 0
 
 ; print_string_transparent:
 ; Prints a string with transparent background in graphical mode
@@ -515,66 +579,18 @@ print_string_graphics_cursor:
 	pusha
 	mov [text_background], ecx
 	mov [text_foreground], edx
-	;cld
 
 .loop:
 	lodsb
 	cmp al, 0
 	je .done
-
-	cmp al, 13
-	je .carriage
-
-	cmp al, 10
-	je .newline
-
-.character:
-	mov bl, [x_cur_max]
-	cmp byte[x_cur], bl
-	jg .x_overflow
-
 	call put_char_cursor
-
 	jmp .loop
-
-.carriage:
-	mov byte[x_cur], 0
-	jmp .loop
-
-.newline:
-	add byte[y_cur], 1
-	mov byte[x_cur], 0
-
-	mov al, [y_cur_max]
-	cmp byte[y_cur], al
-	jg .newline_y_overflow
-
-	jmp .loop
-
-.newline_y_overflow:
-	call scroll_screen_graphics
-	jmp .loop
-
-.x_overflow:
-	mov byte[x_cur], 0
-	add byte[y_cur], 1
-	mov al, [y_cur_max]
-	cmp byte[y_cur], al
-	jg .y_overflow
-
-	jmp .character
-
-.y_overflow:
-	call scroll_screen_graphics
-	jmp .character
 
 .done:
 	call redraw_screen
 	popa
 	ret
-
-.x			dw 0
-.y			dw 0
 
 ; scroll_screen_graphics:
 ; Scrolls the screen in graphics mode
@@ -586,9 +602,11 @@ scroll_screen_graphics:
 	mov al, [y_cur_max]
 	mov byte[y_cur], al
 
-	mov eax, 16
-	mov ebx, [screen.bytes_per_line]
-	mul ebx
+	;mov eax, 16
+	;mov ebx, [screen.bytes_per_line]
+	;mul ebx
+	mov eax, [screen.bytes_per_line]
+	shl eax, 4			; quick multiply by 16
 	mov [.size_of_line], eax
 
 	mov eax, [screen.height]
@@ -596,9 +614,10 @@ scroll_screen_graphics:
 	mul ebx
 	mov ebx, [.size_of_line]
 	sub eax, ebx
-	mov ebx, 16
-	mov edx, 0
-	div ebx
+	;mov ebx, 16
+	;mov edx, 0
+	;div ebx
+	shr eax, 4			; quick divide by 16
 	mov [.size], eax
 
 	mov eax, 0
@@ -618,9 +637,10 @@ scroll_screen_graphics:
 	loop .loop
 
 	mov eax, [.size_of_line]
-	mov ebx, 16
-	mov edx, 0
-	div ebx
+	;mov ebx, 16
+	;mov edx, 0
+	;div ebx
+	shr eax, 4			; quick divide by 16
 	mov [.size_of_line], eax
 
 	mov ebx, [screen.height]

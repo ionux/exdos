@@ -38,15 +38,24 @@ main:
 
 	mov [bootdisk], dl
 
+	mov ah, 0xF
+	int 0x10
+
+	cmp al, 3
+	je start_booting
+
+	cmp al, 7
+	je start_booting
+
 	mov ax, 3
 	int 0x10
 
+start_booting:
 	mov ax, 0
 	mov dl, [bootdisk]
 	int 0x13
 	jc disk_error
 
-start_booting:
 	cmp byte[part1.boot], 0x80
 	je .boot1
 

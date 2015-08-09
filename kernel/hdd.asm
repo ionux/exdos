@@ -118,7 +118,7 @@ use32
 
 ; hdd_read_sectors:
 ; Reads a series of sectors from the hard disk
-; In\	EAX = LBA
+; In\	EAX = LBA sector
 ; In\	EBX = Number of sectors to read
 ; In\	EDI = Buffer to read sectors
 ; Out\	Carry clear on success
@@ -230,3 +230,5 @@ use32
 .sectors		dd 0
 .max_lba		dd 0
 .copy			dd 0
+
+

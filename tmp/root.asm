@@ -1,44 +1,42 @@
-use32
+entries				dd 511			; number of entries in directory
+							; 511 and not 512 because the first entry is always reserved for hierarchy support
+				times 32 - ($-$$) db 0
 
-filename	db			"kernel  sys"
-lba		dd			200
-size_sectors	dd			80
-size_bytes	dd			12288
-time		db			11		; hour
-		db			36		; minute
-date		db 			20		; day
-		db			6		; month
-		dw 			2015		; year
+filename			db "kernel  sys"
+reserved1			db 0
+lba_sector			dd 200
+size_sectors			dd 70
+size_bytes			dd 70*512
+time				db 8
+				db 53
+date				db 7
+				db 8
+				dw 2015
+reserved2			dw 0
 
-		db			"init    exe"
-		dd			700
-		dd			8
-		dd			16384
-		db			11		; hour
-		db			36		; minute
-		db 			20		; day
-		db			6		; month
-		dw 			2015		; year
+				db "init    exe"
+				db 0
+				dd 500
+				dd 10
+				dd 10*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
 
-		db			"hello   exe"
-		dd			800
-		dd			1
-		dd			16384
-		db			11		; hour
-		db			36		; minute
-		db 			20		; day
-		db			6		; month
-		dw 			2015		; year
-
-		db			"wp      bmp"
-		dd			1024
-		dd			2813
-		dd			1440122
-		db			11		; hour
-		db			36		; minute
-		db 			20		; day
-		db			6		; month
-		dw 			2015		; year
+				db "hello   exe"
+				db 0
+				dd 600
+				dd 1
+				dd 1*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
 
 
 

@@ -264,21 +264,19 @@ use32
 
 	mov byte[screen.is_graphics_mode], 1
 
-	movzx eax, word[.width]
+	movzx eax, [.width]
 	mov ebx, 8
 	mov edx, 0
 	div ebx
-	sub eax, 1
+	sub al, 1
+	mov [x_cur_max], al
 
-	mov byte[x_cur_max], al
-
-	movzx eax, word[.height]
+	movzx eax, [.height]
 	mov ebx, 16
 	mov edx, 0
 	div ebx
-	sub eax, 1
-
-	mov byte[y_cur_max], al
+	sub al, 1
+	mov [y_cur_max], al
 
 	movzx eax, word[vga_memory_64kb]
 	mov ebx, 64
@@ -319,6 +317,9 @@ use32
 	rep stosb
 
 	call redraw_screen			; ensure the screen is blank
+
+	mov byte[x_cur], 0
+	mov byte[y_cur], 0
 
 	mov eax, 0
 	ret

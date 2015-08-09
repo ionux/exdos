@@ -134,29 +134,10 @@ detect_cpu_speed:
 	ret
 
 .no_tsc:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
 	mov esi, .no_tsc_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	jmp draw_boot_error
 
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	sti
-	jmp $
-
-.no_tsc_msg			db "Boot error: This CPU doesn't support TSC: Timestamp counter.",0
+.no_tsc_msg			db "CPU doesn't support TSC: Timestamp Counter.",0
 .high				dd 0
 .low				dd 0
 .debug_msg1			db "cpu: getting CPU speed using TSC...",10,0

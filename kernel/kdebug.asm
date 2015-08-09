@@ -5,7 +5,7 @@
 ;; Version 0.1 pre alpha						;;
 ;; Copyright (C) 2015 by Omar Mohammad, all rights reserved.		;;
 ;;									;;
-;; shell/kdebug.asm							;;
+;; kernel/kdebug.asm							;;
 ;; Built-in Kernel Debugger						;;
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

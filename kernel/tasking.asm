@@ -118,51 +118,15 @@ init_sysenter:
 	ret
 
 .no_msr:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
 	mov esi, .no_msr_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	jmp $
+	jmp draw_boot_error
 
 .no_sysenter:
-	mov ebx, 0x333333
-	mov cx, 0
-	mov dx, 218
-	mov esi, 800
-	mov edi, 160
-	call alpha_fill_rect
-
 	mov esi, .no_sysenter_msg
-	mov bx, 32
-	mov cx, 250
-	mov edx, 0xDEDEDE
-	call print_string_transparent
+	jmp draw_boot_error
 
-	mov esi, _boot_error_common
-	mov bx, 32
-	mov cx, 340
-	mov edx, 0xDEDEDE
-	call print_string_transparent
-
-	jmp $
-
-.no_msr_msg			db "Boot error: This CPU doesn't support MSR: Model-Specific Registers.",0
-.no_sysenter_msg		db "Boot error: ExDOS requires a Pentium II or better CPU.",0
+.no_msr_msg			db "CPU doesn't support MSR: Model-Specific Registers.",0
+.no_sysenter_msg		db "CPU doesn't support SYSENTER/SYSEXIT.",0
 
 use32
 

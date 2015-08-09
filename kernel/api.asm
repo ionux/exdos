@@ -25,6 +25,8 @@ os_api:
 	call enter_ring0		; ensure the API runs in ring 0
 	popa
 
+	sti
+
 	pusha
 	cmp eax, os_api_max_function
 	jg .bad

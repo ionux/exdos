@@ -145,7 +145,7 @@ new_filename:			times 16 db 0
 load_root_directory:
 	mov eax, 1
 	add eax, dword[boot_partition.lba]
-	mov ebx, 29
+	mov ebx, 32
 	mov edi, disk_buffer
 	call hdd_read_sectors
 
@@ -163,10 +163,12 @@ load_file:
 
 	call internal_filename
 	call load_root_directory
+	jc .disk_error
 
-	mov esi, disk_buffer
+	mov esi, disk_buffer+32			; each root entry is 32 bytes in size
+						; but the first entry is always unused for files, so skip it
 	mov edi, new_filename
-	mov ecx, 0
+	mov ecx, 1				; start counting from 1 and not 0 because we skipped the first entry
 
 .find_file:
 	pusha
@@ -179,35 +181,35 @@ load_file:
 	cmp ecx, 512
 	je .file_not_found
 
-	add esi, 29
+	add esi, 32
 	jmp .find_file
 
 .found_file:
-	mov eax, dword[esi]
-	add esi, 4
-	mov ebx, dword[esi]
-	add esi, 4
-	mov ecx, dword[esi]
+	add esi, 1
+	mov eax, [esi]
+	mov ebx, [esi+4]
+	mov ecx, [esi+8]
 	mov [.size], ecx
+
 	mov edi, [.location]
-	call hdd_read_sectors
-	jc .fail2
+	call hdd_read_sectors			; read the file into memory
+	jc .disk_error_stub
 
 	popa
 	mov eax, 0
 	mov ecx, [.size]
 	ret
 
-.fail2:
-	popa
-
-.fail:
-	mov eax, 2
+.file_not_found:
+	mov eax, 1
 	mov ecx, 0
 	ret
 
-.file_not_found:
-	mov eax, 1
+.disk_error_stub:
+	popa
+
+.disk_error:
+	mov eax, 2
 	mov ecx, 0
 	ret
 
