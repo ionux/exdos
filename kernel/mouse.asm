@@ -114,13 +114,7 @@ mouse_irq:
 	mov fs, ax
 	mov gs, ax
 
-	mov esi, .a
-
 	in al, 0x60
-	call hex_byte_to_string
-	mov ecx, 0xC0C0C0
-	mov edx, 0
-	call print_string_graphics_cursor
 
 	mov al, 0x20
 	out 0x20, al
@@ -132,6 +126,4 @@ mouse_irq:
 	pop ds
 	popa
 	iret
-
-.a		db "a",0
 

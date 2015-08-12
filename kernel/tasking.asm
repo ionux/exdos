@@ -285,19 +285,21 @@ execute_program:
 	mov ecx, [program_header.program_size]
 	rep movsb
 
+	mov byte[is_program_running], 1
+
 	call enter_ring3
 
-	mov byte[is_program_running], 1
 	mov eax, [program_header.entry_point]
 	call eax
 
 	pusha
 	call enter_ring0
-	popa
 
 	mov eax, 0x8000000
 	mov ecx, [.size]
 	call vmm_unmap_memory		; free the memory used by the program
+
+	popa
 
 	mov byte[is_program_running], 0
 	mov ebx, 0

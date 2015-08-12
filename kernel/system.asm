@@ -166,7 +166,7 @@ detect_memory:
 	int 0x15
 	pop di
 
-	jnc .error
+	jc .error
 
 	cmp eax, 0x534D4150
 	jne .fail
@@ -203,7 +203,7 @@ detect_memory:
 	mov cx, 0
 	mov dx, 0
 	int 0x15
-	jnc .really_fail
+	jc .really_fail
 
 	cmp ah, 0x86
 	je .really_fail
