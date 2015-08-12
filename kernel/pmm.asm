@@ -10,6 +10,13 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; pmm_init
+; pmm_allocate_memory
+; pmm_free_memory
+; pmm_find_free_block
+; segmented_to_linear
+
 use32
 
 free_memory			dd 0

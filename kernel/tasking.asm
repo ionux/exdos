@@ -10,6 +10,14 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; load_tss
+; init_sysenter
+; sysenter_main
+; enter_ring0
+; enter_ring3
+; execute_program
+
 use32
 
 align 32
@@ -141,35 +149,17 @@ sysenter_main:
 	mov fs, ax
 	mov gs, ax
 
-	mov eax, [sysenter_esp]
+	mov eax, dword[stack_area]
 	mov esp, eax
-
-	;sti
-
-	cmp byte[sysenter_custom], 1
-	je .custom
-
-	cli
-	hlt
-
-.custom:
-	mov byte[sysenter_custom], 0
-	mov eax, [sysenter_return]
+	pop eax
 	jmp eax
-
-sysenter_custom			db 0
-sysenter_return			dd 0
-sysenter_esp			dd 0
 
 ; enter_ring0:
 ; puts the system in kernel mode
 
 enter_ring0:
-	mov byte[sysenter_custom], 1
-	pop eax
-	mov [sysenter_return], eax
 	mov eax, esp
-	mov [sysenter_esp], eax
+	mov dword[stack_area], eax
 	sysenter
 
 ; enter_ring3:

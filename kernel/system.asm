@@ -10,6 +10,21 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; enable_a20
+; check_a20
+; detect_memory
+; verify_enough_memory
+; go32
+; go16
+; remap_pic
+; init_pit
+; init_sse
+; bcd_to_int
+; delay_execution
+; rand
+; srand
+
 use16
 
 bootdisk			db 0
@@ -151,7 +166,7 @@ detect_memory:
 	int 0x15
 	pop di
 
-	jc .error
+	jnc .error
 
 	cmp eax, 0x534D4150
 	jne .fail
@@ -188,7 +203,7 @@ detect_memory:
 	mov cx, 0
 	mov dx, 0
 	int 0x15
-	jc .really_fail
+	jnc .really_fail
 
 	cmp ah, 0x86
 	je .really_fail

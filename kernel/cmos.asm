@@ -10,6 +10,20 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; cmos_delay
+; wait_cmos
+; init_cmos
+; get_time_24
+; get_time_12
+; get_date
+; get_weekday_from_date
+; get_time_string_24
+; get_time_string_12
+; get_date_string_am
+; get_date_string_me
+; get_long_date_string
+
 use32
 
 cmos_bcd			db 0

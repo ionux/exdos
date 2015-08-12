@@ -10,6 +10,12 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; internal_filename
+; external_filename
+; load_root_directory
+; load_file
+
 use32
 
 ; internal_filename:

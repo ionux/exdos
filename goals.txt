@@ -1,0 +1,41 @@
+ExDOS Goals:
+
+Total goals:		23
+Achieved goals:		11
+Total percentage:	47%
+
+1. Basic kernel:
+	1.1	Program execution		(done)
+	1.2	Physical memory management	(done)
+	1.3	Virtual memory management	(done)
+	1.4	Userspace			(done)
+	1.5	Driver API in userspace
+	1.6	ACPI shutdown			(done)
+	1.7	ACPI IRQ			(done)
+	1.8	v8086 monitor
+
+2. Filesystem:
+	2.1	Read/write EXFS
+	2.2	Hierarchy support
+
+3. Self hosting:
+	3.1	Port FASM
+	3.2	Write a text editor
+
+4. Graphics:
+	4.1	VESA framebuffer driver		(done)
+	4.2	Alpha blending			(done)
+	4.3	Graphical fonts			(done)
+	4.4	BMP image viewer		(done)
+	4.5	Double-buffering		(done)
+
+5. Networking:
+	5.1	TCP/IP stack
+	5.2	RTL8139 driver
+	5.3	NE2000 driver
+	5.4	Simple web browser
+
+6. C:
+	6.1	Write a C library
+	6.2	Port TCC
+

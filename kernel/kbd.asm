@@ -10,6 +10,15 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; wait_ps2_write
+; wait_ps2_read
+; init_kbd
+; kbd_irq
+; get_char_wait
+; get_char_nowait
+; get_string_echo
+
 use32
 
 kbd_leds			db 0
@@ -40,24 +49,6 @@ wait_ps2_read:
 	jz .wait
 
 	pop eax
-	ret
-
-; ps2_send_command:
-; Sends a command to the PS/2 controller
-; In\	AL = Command
-; Out\	Nothing
-
-ps2_send_command:
-	push eax
-
-	call wait_ps2_write
-	mov al, 0xD4
-	out 0x64, al
-
-	call wait_ps2_write
-	pop eax
-	out 0x60, al
-
 	ret
 
 ; init_kbd:

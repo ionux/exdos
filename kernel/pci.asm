@@ -10,6 +10,13 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; init_pci
+; pci_read_dword
+; pci_write_dword
+; pci_set_irq
+; pci_get_device
+
 use32
 
 is_there_pci			db 0

@@ -10,6 +10,10 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; check_vbe
+; set_vesa_mode
+
 use32
 
 vesa_driver_name		db "ExDOS VESA 2.0 framebuffer driver",0
@@ -89,6 +93,36 @@ x_cur_max			db 0
 y_cur_max			db 0
 x_cur				db 0
 y_cur				db 0
+
+use16
+
+; check_vbe:
+; Checks for VESA BIOS
+
+check_vbe:
+	push es
+	mov ax, 0x4F00					; get VBE controller info
+	mov di, vesa_info_block
+	int 0x10
+	pop es
+
+	cmp ax, 0x4F
+	jne .error
+
+	cmp word[vesa_info_block.version], 0x200	; we need VESA 2.0 or better to boot
+	jl .error
+
+	ret
+
+.error:
+	mov si, .error_msg
+	call print_string_16
+
+	jmp $
+
+.error_msg			db "Boot error: VESA BIOS is not present.",0
+
+use32
 
 ; set_vesa_mode:
 ; Sets a VESA mode of specified width, height and bpp

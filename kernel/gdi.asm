@@ -10,6 +10,29 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; get_pixel_offset
+; redraw_screen
+; get_screen_center
+; put_pixel
+; move_cursor_graphics
+; put_char_transparent
+; put_char
+; put_char_cursor
+; print_string_graphics
+; print_string_graphics_cursor
+; print_string_transparent
+; scroll_screen_graphics
+; clear_screen
+; draw_horz_line
+; fill_rect
+; alpha_blend_colors
+; alpha_draw_horz_line
+; alpha_fill_rect
+; draw_image
+; display_bitmap_32bpp
+; display_bitmap_24bpp
+
 use32
 
 text_background			dd 0

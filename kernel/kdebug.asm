@@ -10,6 +10,12 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; kdebug_init
+; kdebug_get_location
+; kdebug_print
+; kdebug_print_noprefix
+
 kdebugger_location			= 0x20000		; 0x20000=>0x40000 (128 KB) is reserved for kernel debugger
 kdebugger_free_location			dd 0
 

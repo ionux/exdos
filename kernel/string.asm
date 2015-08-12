@@ -10,6 +10,16 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; get_string_size
+; compare_strings
+; chomp_string
+; hex_nibble_to_string
+; hex_byte_to_string
+; hex_word_to_string
+; hex_dword_to_string
+; int_to_string
+
 use32
 
 ; get_string_size:

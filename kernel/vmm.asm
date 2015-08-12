@@ -10,6 +10,12 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; vmm_init
+; vmm_map_memory
+; vmm_unmap_memory
+; vmm_get_phys_address
+
 use32
 
 ; vmm_init:
@@ -53,14 +59,20 @@ vmm_init:
 	mov eax, 0				; map 0x0 --
 	mov ebx, 0				; -- to 0x0
 	mov ecx, 256				; 256*4 KB blocks = 1 MB
-	mov edx, 7
+	mov edx, 5				; user, present, read-only
+	call vmm_map_memory
+
+	mov eax, stack_area			; map stack area to itself
+	mov ebx, stack_area
+	mov ecx, 3				; 8 KB
+	mov edx, 7				; user, present, read/write
 	call vmm_map_memory
 
 	; identify page 6 MB of RAM, which is the location of the physical memory bitmap
 	mov eax, 0x600000
 	mov ebx, 0x600000
 	mov ecx, 257				; 257*4 KB blocks = 1 MB + 4 KB
-	mov edx, 3				; 3 = read/write for kernel only
+	mov edx, 3				; present, read/write
 	call vmm_map_memory
 
 	; identify page the kernel debugger, but without write access to the user

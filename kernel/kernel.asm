@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Thursday, 6th August, 2015"
+define TODAY "Monday, 10th August, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1
@@ -71,6 +71,7 @@ kmain16:
 	call check_a20				; check A20 status
 	call detect_memory			; detect memory using E820, and use E801 if E820 fails
 	call verify_enough_memory		; verify we have enough usable RAM
+	call check_vbe				; check for VESA BIOS
 
 get_vesa_mode_loop:
 	mov byte[is_paging_enabled], 0
@@ -265,6 +266,7 @@ use32
 
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
+	call init_mouse				; initialize PS/2 mouse
 	call init_cpuid				; get CPU brand
 	call detect_cpu_speed			; get CPU speed
 	call init_acpi				; initialize ACPI
@@ -347,13 +349,13 @@ include				"kernel/apm.asm"		; APM BIOS
 include				"kernel/drivers.asm"		; Driver interface
 include				"kernel/kdebug.asm"		; Kernel debugger
 include				"kernel/booterror.asm"		; Boot error UI
+include				"kernel/mouse.asm"		; PS/2 mouse driver
 
 db				"This program is property of Omar Mohammad.",0
 
-align 32
+align 4096			; stack will be in its own page so we can map it as read/write
 
 stack_area:			rb stack_size			; 8 KB of stack space
-				rq 1				; and an extra QWORD, just in case ;)
 
 align 32
 

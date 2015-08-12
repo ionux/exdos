@@ -10,6 +10,13 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; init_acpi
+; acpi_find_table
+; init_acpi_power
+; acpi_shutdown
+; acpi_reset
+
 use32
 
 acpi_reserved_memory		dd 0x100000		; reserve at least 1 MB for ACPI

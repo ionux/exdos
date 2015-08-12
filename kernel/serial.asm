@@ -10,6 +10,11 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; init_serial
+; send_byte_via_serial
+; send_string_via_serial
+
 use32
 
 is_there_serial				db 0
