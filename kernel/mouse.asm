@@ -259,6 +259,8 @@ get_mouse_status:
 
 	mov eax, [mouse_x]
 	mov ebx, [mouse_y]
+	movzx ecx, [mouse_irq.data]
+	and ecx, 5
 
 	ret
 
