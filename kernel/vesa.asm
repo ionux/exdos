@@ -120,7 +120,7 @@ check_vbe:
 
 	jmp $
 
-.error_msg			db "Boot error: VESA BIOS is not present.",0
+.error_msg			db "Boot error: VESA BIOS version 2.0 or better is not present.",0
 
 use32
 

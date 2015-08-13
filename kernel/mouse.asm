@@ -114,8 +114,37 @@ mouse_irq:
 	mov fs, ax
 	mov gs, ax
 
-	in al, 0x60
+	cmp byte[.status], 0
+	je .data_packet
 
+	cmp byte[.status], 1
+	je .x_packet
+
+	cmp byte[.status], 2
+	je .y_packet
+
+.data_packet:
+	in al, 0x60
+	mov [.data], al
+
+	mov byte[.status], 1
+	jmp .done
+
+.x_packet:
+	in al, 0x60
+	mov [.x], al
+
+	mov byte[.status], 2
+	jmp .done
+
+.y_packet:
+	in al, 0x60
+	mov [.y], al
+
+	mov byte[.status], 0
+	mov byte[.changed], 1
+
+.done:
 	mov al, 0x20
 	out 0x20, al
 	out 0xA0, al
@@ -126,4 +155,113 @@ mouse_irq:
 	pop ds
 	popa
 	iret
+
+.status				db 0
+.data				db 0
+.x				db 0
+.y				db 0
+.changed			db 0
+
+mouse_x				dd 0
+mouse_y				dd 0
+
+; get_mouse_status:
+; Gets the mouse's button status and position
+; In\	Nothing
+; Out\	EAX = X position
+; Out\	EBX = Y position
+; Out\	ECX = Button status (lowest two bits)
+
+get_mouse_status:
+	sti
+
+.wait_for_movement:
+	cmp byte[mouse_irq.changed], 1
+	jne .wait_for_movement
+
+.check_overflows:
+	test byte[mouse_irq.data], 0x80
+	jnz .done
+
+	test byte[mouse_irq.data], 0x40
+	jnz .done
+
+.do_x:
+	mov eax, [mouse_x]
+	movzx ebx, byte[mouse_irq.x]
+
+	test byte[mouse_irq.data], 0x10
+	jnz .x_negative
+
+.x_positive:
+	add eax, ebx
+	mov [mouse_x], eax
+	jmp .do_y
+
+.x_negative:
+	sub eax, ebx
+	mov [mouse_x], eax
+
+.do_y:
+	mov eax, [mouse_y]
+	movzx ebx, byte[mouse_irq.y]
+
+	test byte[mouse_irq.data], 0x20
+	jnz .y_negative
+
+.y_positive:
+	sub eax, ebx
+	mov [mouse_y], eax
+	jmp .check_x
+
+.y_negative:
+	add eax, ebx
+	mov [mouse_y], eax
+
+.check_x:
+	mov eax, [mouse_x]
+	test eax, 0x80000000
+	jnz .x_zero
+
+	cmp eax, [screen.width]
+	jg .x_overflow
+
+	jmp .check_y
+
+.x_zero:
+	mov dword[mouse_x], 0
+	jmp .check_y
+
+.x_overflow:
+	mov eax, [screen.width]
+	mov [mouse_x], eax
+
+.check_y:
+	mov eax, [mouse_y]
+	test eax, 0x80000000
+	jnz .y_zero
+
+	cmp eax, [screen.height]
+	jg .y_overflow
+
+	jmp .done
+
+.y_zero:
+	mov dword[mouse_y], 0
+	jmp .done
+
+.y_overflow:
+	mov eax, [screen.height]
+	mov [mouse_y], eax
+
+.done:
+	mov byte[mouse_irq.changed], 0
+
+	mov eax, [mouse_x]
+	mov ebx, [mouse_y]
+
+	ret
+
+
+
 
