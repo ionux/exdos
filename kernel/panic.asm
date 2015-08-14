@@ -199,44 +199,32 @@ init_exceptions:
 ;;
 
 divide_error:
-	mov esi, .msg
+	mov esi, divide_error_msg
 	call draw_panic_screen
-
-.msg				db "Divide error.",0
 
 debug_error:
-	mov esi, .msg
+	mov esi, debug_error_msg
 	call draw_panic_screen
-
-.msg				db "Debug interrupt.",0
 
 nmi_error:
-	mov esi, .msg
+	mov esi, nmi_error_msg
 	call draw_panic_screen
-
-.msg				db "Non-maskable interrupt.",0
 
 breakpoint_error:
-	mov esi, .msg
+	mov esi, breakpoint_error_msg
 	call draw_panic_screen
-
-.msg				db "Breakpoint.",0
 
 overflow_error:
-	mov esi, .msg
+	mov esi, overflow_error_msg
 	call draw_panic_screen
-
-.msg				db "Overflow error.",0
 
 bound_error:
-	mov esi, .msg
+	mov esi, bound_error_msg
 	call draw_panic_screen
-
-.msg				db "BOUND error.",0
 
 opcode_error:
 	mov byte[draw_panic_screen.custom_exception], 1
-	mov esi, .msg
+	mov esi, opcode_error_msg
 	call draw_panic_screen
 
 	mov byte[x_cur], 4
@@ -256,44 +244,31 @@ opcode_error:
 	call get_char_wait
 	call reboot
 
-.msg				db "Invalid opcode error.",0
 .error_info			db "EIP: ",0
 
 device_error:
-	mov esi, .msg
+	mov esi, device_error_msg
 	call draw_panic_screen
-
-.msg				db "Device not available.",0
 
 double_fault_error:
-	mov esi, .msg
+	mov esi, double_fault_msg
 	call draw_panic_screen
-
-.msg				db "Double fault.",0
 
 coprocessor_segment_error:
-	mov esi, .msg
+	mov esi, coprocessor_segment_error_msg
 	call draw_panic_screen
-
-.msg				db "Coprocessor segment overrun.",0
 
 tss_error:
-	mov esi, .msg
+	mov esi, tss_error_msg
 	call draw_panic_screen
-
-.msg				db "Invalid TSS.",0
 
 segment_error:
-	mov esi, .msg
+	mov esi, segment_error_msg
 	call draw_panic_screen
-
-.msg				db "Requested segment not present.",0
 
 stack_error:
-	mov esi, .msg
+	mov esi, stack_error_msg
 	call draw_panic_screen
-
-.msg				db "Stack segment fault.",0
 
 gpf_error:
 	pop ebp				; get rid of error code
@@ -305,15 +280,14 @@ gpf_error:
 	push ebp
 	mov [ss:.return], ebp
 
-	mov esi, .msg
+	mov esi, gpf_error_msg
 	call draw_panic_screen
 
-.msg				db "General protection fault.",0
 .return				dd 0
 
 page_error:
 	mov byte[draw_panic_screen.custom_exception], 1
-	mov esi, .msg
+	mov esi, page_error_msg
 	call draw_panic_screen
 
 	mov byte[x_cur], 4
@@ -399,7 +373,6 @@ page_error:
 	call get_char_wait
 	call reboot
 
-.msg				db "Page fault.",0
 .error_info			db "Details: ",0
 .kernel				db "Kernel ",0
 .user				db "User ",0
@@ -411,56 +384,62 @@ page_error:
 .error_code			dd 0
 
 reserved_error:
-	mov esi, .msg
+	mov esi, reserved_error_msg
 	call draw_panic_screen
-
-.msg				db "Reserved error.",0
 
 fpu_error:
-	mov esi, .msg
+	mov esi, fpu_error_msg
 	call draw_panic_screen
-
-.msg				db "FPU exception.",0
 
 alignment_error:
-	mov esi, .msg
+	mov esi, alignment_error_msg
 	call draw_panic_screen
-
-.msg				db "Alignment check.",0
 
 machine_error:
-	mov esi, .msg
+	mov esi, machine_error_msg
 	call draw_panic_screen
-
-.msg				db "Machine check.",0
 
 simd_error:
-	mov esi, .msg
+	mov esi, simd_error_msg
 	call draw_panic_screen
-
-.msg				db "SIMD floating point exception.",0
 
 virtualization_error:
-	mov esi, .msg
+	mov esi, virtualization_error_msg
 	call draw_panic_screen
-
-.msg				db "Virtualization exception.",0
 
 security_error:
-	mov esi, .msg
+	mov esi, security_error_msg
 	call draw_panic_screen
-
-.msg				db "Security exception.",0
-
-stack_overflow_error:
-	mov esi, .msg
-	call draw_panic_screen
-
-.msg				db "Stack overflow.",0
 
 out_of_memory:
-	mov esi, .msg
+	mov esi, out_of_memory_msg
 	call draw_panic_screen
 
-.msg				db "Out of memory, no usable memory was found.",0
+;; 
+;; ERROR MESSAGES
+;;
+
+divide_error_msg			db "Divide error",0
+debug_error_msg				db "Debug error",0
+nmi_error_msg				db "Non-maskable interrupt",0
+breakpoint_error_msg			db "Breakpoint",0
+overflow_error_msg			db "Overflow error",0
+bound_error_msg				db "BOUND error",0
+opcode_error_msg			db "Invalid opcode error",0
+device_error_msg			db "Device not present",0
+double_fault_msg			db "Double fault",0
+coprocessor_segment_error_msg		db "Coprocessor segment error",0
+tss_error_msg				db "Corrupt TSS",0
+segment_error_msg			db "Stack segment error",0
+stack_error_msg				db "Stack error",0
+gpf_error_msg				db "General protection fault",0
+page_error_msg				db "Page fault",0
+reserved_error_msg			db "Reserved exception",0
+fpu_error_msg				db "FPU exception",0
+alignment_error_msg			db "Alignment check",0
+machine_error_msg			db "Machine check",0
+simd_error_msg				db "SIMD floating point exception",0
+virtualization_error_msg		db "Virtualization error",0
+security_error_msg			db "Security error",0
+out_of_memory_msg			db "Out of memory",0
 
