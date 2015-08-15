@@ -932,8 +932,13 @@ get_long_date_string:
 	movzx eax, byte[.day]
 	call int_to_string
 
+	push esi
+	call get_string_size
+	pop esi
+	mov ecx, eax
+
 	mov edi, [.tmp]
-	movsb
+	rep movsb
 	mov al, ' '
 	stosb
 	mov [.tmp], edi

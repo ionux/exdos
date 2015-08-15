@@ -13,6 +13,7 @@
 ;; Functions:
 ; init_hdd
 ; hdd_read_sectors
+; hdd_write_sectors
 
 use32
 
@@ -53,7 +54,7 @@ init_hdd:
 
 use16
 
-	mov eax, 0
+	mov ax, 0
 	mov dl, [bootdisk]
 	int 0x13
 	jc .fail
@@ -68,7 +69,7 @@ use16
 	mov ax, dx
 	mov [disk_size_sectors], eax
 
-	mov eax, 0
+	mov ax, 0
 	mov dl, [bootdisk]
 	int 0x13
 	jc .fail
@@ -234,5 +235,72 @@ use32
 .sectors		dd 0
 .max_lba		dd 0
 .copy			dd 0
+
+; hdd_write_sectors:
+; Writes a series of sectors to the hard disk
+; In\	EAX = LBA sector
+; In\	EBX = Sectors to write
+; In\	ESI = Buffer to write sectors
+; Out\	Carry clear on success
+; Out\	AH = Error code on failure
+
+hdd_write_sectors:
+	mov [.lba], eax
+	mov [.sectors], ebx
+	mov [.buffer], esi
+
+	mov eax, [.sectors]
+	mov ebx, 512
+	mul ebx
+	mov ecx, eax
+	mov esi, [.buffer]
+	mov edi, 0x40000		; copy the buffer to low memory so that BIOS can work
+	rep movsb
+
+	call go16
+
+use16
+
+	mov ax, 0
+	mov dl, [bootdisk]
+	int 0x13
+	jc .fail
+
+	mov ebx, [.sectors]
+	mov [dap.sectors], bx
+	mov ebx, [.lba]
+	mov [dap.lba], ebx
+	mov word[dap.segment], 0x4000
+	mov word[dap.offset], 0
+
+	mov ah, 0x43			; extended write
+	mov dl, [bootdisk]
+	mov si, dap
+	int 0x13
+	jc .fail
+
+	call go32
+
+use32
+
+	clc
+	ret
+
+use16
+
+.fail:
+	call go32
+
+use32
+
+	stc
+	ret
+
+.lba			dd 0
+.sectors		dd 0
+.buffer			dd 0
+
+
+
 
 

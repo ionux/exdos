@@ -31,34 +31,41 @@ alpha_draw_horz_line		= 12
 alpha_fill_rect			= 13
 alpha_blend_colors		= 14
 draw_image			= 15
+get_screen_info			= 16
 
 ; Keyboard routines
-get_char_wait			= 16
-get_char_no_wait		= 17
-get_string			= 18
+get_char_wait			= 17
+get_char_no_wait		= 18
+get_string			= 19
 
 ; String-based routines
-get_string_size			= 19
-chomp_string			= 20
-int_to_string			= 21
-hex_byte_to_string		= 22
-hex_word_to_string		= 23
-hex_dword_to_string		= 24
-compare_strings			= 25
+get_string_size			= 20
+chomp_string			= 21
+int_to_string			= 22
+hex_byte_to_string		= 23
+hex_word_to_string		= 24
+hex_dword_to_string		= 25
+compare_strings			= 26
 
 ; Power-based routines
-reboot				= 26
-shutdown			= 27
+reboot				= 27
+shutdown			= 28
 
 ; Time-based routines
-get_time_24			= 28
-get_time_12			= 29
-get_time_string_24		= 30
-get_time_string_12		= 31
-get_date			= 32
-get_date_string_am		= 33
-get_date_string_me		= 34
-get_long_date_string		= 35
+get_time_24			= 29
+get_time_12			= 30
+get_time_string_24		= 31
+get_time_string_12		= 32
+get_date			= 33
+get_date_string_am		= 34
+get_date_string_me		= 35
+get_long_date_string		= 36
+
+; Mouse routines
+get_mouse_status		= 37
+show_mouse_cursor		= 38
+hide_mouse_cursor		= 39
+set_mouse_cursor		= 40
 
 macro os_api function_number {
 	mov eax, function_number

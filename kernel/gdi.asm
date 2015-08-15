@@ -408,15 +408,17 @@ put_char_cursor:
 
 	mov al, [x_cur]
 	cmp al, byte[x_cur_max]
-	jg .x_overflow
+	jge .x_overflow
 
 .print:
 	movzx eax, [x_cur]
+	mov edx, 0
 	mov ebx, 8
 	mul ebx
 	mov [.x], eax
 
 	movzx eax, [y_cur]
+	mov edx, 0
 	mov ebx, 16
 	mul ebx
 	mov [.y], eax
@@ -541,12 +543,12 @@ print_string_transparent:
 ; In\	ESI = String offset
 ; In\	BX = X pos
 ; In\	CX = Y pos
-; In\	EAX = Background color
+; In\	EDI = Background color
 ; In\	EDX = Foreground color
 ; Out\	Nothing
 
 print_string_graphics:
-	mov [text_background], eax
+	mov [text_background], edi
 	mov [text_foreground], edx
 
 	mov [.x], bx
@@ -850,9 +852,10 @@ fill_rect:
 
 .32:
 	mov eax, [.size]
-	mov ebx, 4
-	mov edx, 0
-	div ebx
+	;mov ebx, 4
+	;mov edx, 0
+	;div ebx
+	shr eax, 2				; quick divide by 4
 	mov [.size], eax
 
 .32_loop:
@@ -1119,7 +1122,7 @@ bmp_pixels			= 0x0A
 ; Draws a BMP image
 ; In\	ESI = Pointer to image data
 ; In\	BX/CX = X/Y coordinates to draw image
-; Out\	EAX = 0 on success, 1 if file is corrupt
+; Out\	EAX = 0 on success, 1 if file is corrupt, 2 if image is too big to fit on screen
 
 draw_image:
 	mov [bmp_location], esi
@@ -1127,12 +1130,29 @@ draw_image:
 	mov [.y], cx
 
 	mov esi, [bmp_location]
-	mov eax, bmp_signature
-	add esi, eax
+	;mov eax, bmp_signature
+	;add esi, eax				; there's no point in doing (add esi, 0), how could I be so stupid? -_-
 	mov edi, .bmp_signature
 	mov ecx, 2
-	rep cmpsb					; verify BMP file is valid
+	rep cmpsb				; verify BMP file is valid
 	jne .corrupt
+
+	; make sure image can fit on screen
+	mov esi, [bmp_location]
+	add esi, bmp_width
+	movzx eax, word[.x]
+	add eax, dword[esi]
+
+	cmp eax, [screen.width]
+	jg .too_big
+
+	mov esi, [bmp_location]
+	add esi, bmp_height
+	movzx eax, [.y]
+	add eax, dword[esi]
+
+	cmp eax, [screen.height]
+	jg .too_big
 
 	movzx ebx, word[.x]
 	movzx ecx, word[.y]
@@ -1144,6 +1164,10 @@ draw_image:
 
 .corrupt:
 	mov eax, 1
+	ret
+
+.too_big:
+	mov eax, 2
 	ret
 
 .bmp_signature		db "BM"

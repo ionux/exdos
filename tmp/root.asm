@@ -39,4 +39,15 @@ reserved2			dw 0
 				dw 0
 
 
+				db "draw    exe"
+				db 0
+				dd 650
+				dd 6
+				dd 6*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
 

@@ -64,9 +64,20 @@ main:
 
 	mov [bootdisk], dl
 
+	mov ah, 0xF
+	mov bx, 0
+	int 0x10
+
+	cmp al, 3
+	je .good_mode
+
+	cmp al, 7
+	je .good_mode
+
 	mov ax, 3
 	int 0x10
 
+.good_mode:
 	mov si, _crlf
 	call print
 

@@ -66,15 +66,11 @@ load_tss:
 
 	pushfd
 	pop eax
-	or eax, 0x202
+	or eax, 0x202			; interrupts are always enabled
 	mov dword[tss.eflags], eax
 
-	mov eax, tss
-	and eax, 0xFFFFFF
-	or [gdt_tss+2], eax
-
-	mov eax, 0x3B
-	ltr ax
+	mov eax, 0x3B			; RPL 3
+	ltr ax				; load the TSS
 
 	ret
 
@@ -150,6 +146,7 @@ sysenter_main:
 	mov gs, ax
 
 	mov eax, dword[stack_area]
+	mov dword[stack_area], 0
 	mov esp, eax
 	pop eax
 	jmp eax

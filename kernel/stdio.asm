@@ -30,69 +30,69 @@ print_string_16:
 .done:
 	ret
 
-use32
+; int16_to_string:
+; Converts an unsigned integer to a string
+; In\	AX = Integer
+; Out\	SI = ASCIIZ string
 
-; clear_screen_text:
-; Clears the screen in text mode
-; In\	BL = Color
-; Out\	Nothing
+int16_to_string:
+	push ax
+	mov [.counter], 10
 
-clear_screen_text:
-	pusha
-	mov [.color], bl
+	mov di, .string
+	mov cx, 10
+	mov ax, 0
+	rep stosb
 
-	mov edi, 0xB8000
-	mov ecx, 2000
+	mov si, .string
+	add si, 9
+	pop ax
 
 .loop:
+	cmp ax, 0
+	je .done2
+	mov bx, 10
+	mov dx, 0
+	div bx
+
+	add dl, 48
+	mov byte[si], dl
+	dec si
+
+	sub byte[.counter], 1
+	cmp byte[.counter], 0
+	je .done
+	jmp .loop
+
+.done:
+	mov si, .string
+	ret
+
+.done2:
+	cmp byte[.counter], 10
+	je .zero
+	mov si, .string
+
+.find_string_loop:
+	lodsb
+	cmp al, 0
+	jne .found_string
+	jmp .find_string_loop
+
+.found_string:
+	dec si
+	ret
+
+.zero:
+	mov di, .string
+	mov al, '0'
+	stosb
 	mov al, 0
 	stosb
-	mov al, [.color]
-	stosb
-	loop .loop
-
-	popa
-	ret
-
-.color				db 0
-
-; move_cursor_text:
-; Moves the VGA hardware cursor
-; In\	DX = Position
-; Out\	Nothing
-
-move_cursor_text:
-	mov byte[.x], dl
-	mov byte[.y], dh
-
-	movzx eax, byte[.y]
-	mov ebx, 80
-	mul ebx
-	movzx ebx, byte[.x]
-	add eax, ebx
-
-	mov ecx, eax
-
-	mov al, 0xF
-	mov dx, 0x3D4
-	out dx, al
-
-	mov eax, ecx
-	mov dx, 0x3D5
-	out dx, al
-
-	mov al, 0xE
-	mov dx, 0x3D4
-	out dx, al
-
-	mov eax, ecx
-	mov al, ah
-	mov dx, 0x3D5
-	out dx, al
+	mov si, .string
 
 	ret
 
-.x				db 0
-.y				db 0
-
+.string:		times 11 db 0
+.counter		db 0
 

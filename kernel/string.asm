@@ -11,6 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Functions:
+; find_byte_in_string
 ; get_string_size
 ; compare_strings
 ; chomp_string
@@ -21,6 +22,30 @@
 ; int_to_string
 
 use32
+
+; find_byte_in_string:
+; Find a byte within a string
+; In\	ESI = String
+; In\	DL = Byte to find
+; In\	ECX = Total bytes to search
+; Out\	EFLAGS = Carry clear if byte found
+; Out\	ESI = Pointer to byte in string
+
+find_byte_in_string:
+
+.loop:
+	lodsb
+	cmp al, dl
+	je .found
+	loop .loop
+
+	stc
+	ret
+
+.found:
+	dec esi
+	clc
+	ret
 
 ; get_string_size:
 ; Returns the size of a string

@@ -112,6 +112,9 @@ get_vesa_mode_loop:
 	cmp al, '4'
 	je .1366x768
 
+	cmp al, '5'
+	je .1024x600
+
 	jmp .loop
 
 .640x480:
@@ -132,6 +135,11 @@ get_vesa_mode_loop:
 .1366x768:
 	mov [syswidth], 1366
 	mov [sysheight], 768
+	jmp .set_mode
+
+.1024x600:
+	mov [syswidth], 1024
+	mov [sysheight], 600
 
 .set_mode:
 	jmp enter_pmode
@@ -153,6 +161,7 @@ get_vesa_mode_loop:
 			db " [2] 800x600",13,10
 			db " [3] 1024x768",13,10
 			db " [4] 1366x768",13,10
+			db " [5] 1024x600",13,10
 			db "Your choice: ",0
 .bad_resol_msg		db "This resolution is not supported by your graphics card or your display.",13,10
 			db "Please try another resolution.",13,10,0
@@ -266,7 +275,6 @@ use32
 
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
-	call init_mouse				; initialize PS/2 mouse
 	call init_cpuid				; get CPU brand
 	call detect_cpu_speed			; get CPU speed
 	call init_acpi				; initialize ACPI
@@ -276,6 +284,7 @@ use32
 	call init_pci				; initialize legacy PCI
 	;call ata_init				; initialize IDE ATA controller
 	;call ahci_init				; initialize SATA (AHCI) controller
+	call init_mouse				; initialize PS/2 mouse
 
 	sti
 
@@ -350,6 +359,7 @@ include				"kernel/drivers.asm"		; Driver interface
 include				"kernel/kdebug.asm"		; Kernel debugger
 include				"kernel/booterror.asm"		; Boot error UI
 include				"kernel/mouse.asm"		; PS/2 mouse driver
+include				"kernel/math.asm"		; Math routines
 
 db				"This program is property of Omar Mohammad.",0
 

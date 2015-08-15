@@ -54,7 +54,7 @@ draw_panic_screen:
 	mov esi, .panic_title
 	mov bx, 288
 	mov cx, 160
-	mov eax, 0xC0C0C0
+	mov edi, 0xC0C0C0
 	mov edx, 0x7F
 	call print_string_graphics
 
@@ -286,6 +286,9 @@ gpf_error:
 .return				dd 0
 
 page_error:
+	cli
+	hlt
+
 	mov byte[draw_panic_screen.custom_exception], 1
 	mov esi, page_error_msg
 	call draw_panic_screen

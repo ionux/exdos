@@ -46,8 +46,6 @@ unhandled_isr:
 	popa
 	iret
 
-.msg			db "KOE",0
-
 ; pit_irq:
 ; PIT IRQ 0 handler
 
@@ -64,8 +62,8 @@ pit_irq:
 	mov fs, ax
 	mov gs, ax
 
-	add dword[ticks], 1
-	add dword[.tmp_ticks], 1
+	inc dword[ticks]
+	inc dword[.tmp_ticks]
 
 	cmp dword[.tmp_ticks], 100
 	je .second
@@ -83,7 +81,7 @@ pit_irq:
 
 .second:
 	mov dword[.tmp_ticks], 0
-	add dword[uptime], 1
+	inc dword[uptime]
 
 	jmp .done
 

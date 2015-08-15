@@ -20,10 +20,7 @@
 ; remap_pic
 ; init_pit
 ; init_sse
-; bcd_to_int
 ; delay_execution
-; rand
-; srand
 
 use16
 
@@ -604,31 +601,6 @@ use16
 
 use32
 
-; bcd_to_int:
-; Converts a binary coded decimal to a binary number
-; In\	AL = BCD number
-; Out\	AL = Binary number
-
-bcd_to_int:
-	mov [.tmp], al
-	and eax, 0xF
-	mov [.tmp2], ax
-	mov al, [.tmp]
-	and eax, 0xF0
-	shr eax, 4
-	and eax, 0xF
-
-	mov ebx, 10
-	mul ebx
-	mov bx, [.tmp2]
-	add ax, bx
-	and eax, 0xFF
-
-	ret
-
-.tmp			db 0
-.tmp2			dw 0
-
 ; delay_execution:
 ; Pauses execution for a specified number of seconds
 ; In\	EAX = Seconds to wait
@@ -653,76 +625,6 @@ delay_execution:
 	popa
 	popfd
 	ret
-
-; rand:
-; Generates a random number between a specified range
-; In\	ECX = Low range
-; In\	EDX = High range
-; Out\	EAX = Random number
-
-rand:
-	mov [.low], ecx
-	mov [.high], edx
-
-	mov eax, [.high]
-	mov ebx, [.low]
-	sub eax, ebx
-	mov [.range], eax
-
-	mov eax, [ticks]
-	shl eax, 8
-	mov ebx, [.range]
-	mov edx, 0
-	div ebx
-
-	add edx, dword[.low]
-	mov eax, edx
-
-	ret
-
-.range			dd 0
-.low			dd 0
-.high			dd 0
-
-; srand:
-; Generates a signed random number between a specified range
-; In\	ECX = Low range
-; In\	EDX = High range
-; Out\	EAX = Random number
-
-srand:
-	mov [.low], ecx
-	mov [.high], edx
-
-	mov ecx, 0
-	mov edx, 100
-	call rand
-
-	test eax, 1
-	jz .positive
-
-	mov ecx, [.low]
-	mov edx, [.high]
-	and ecx, 0x80000000
-	and edx, 0x80000000
-	call rand
-
-	or eax, 0x80000000
-	ret
-
-.positive:
-	mov ecx, [.low]
-	mov edx, [.high]
-	and ecx, 0x80000000
-	and edx, 0x80000000
-	call rand
-
-	and eax, 0x7FFFFFFF
-	ret
-
-.low			dd 0
-.high			dd 0
-
 
 ; gdt:
 ; Global Descriptor Table
@@ -780,10 +682,9 @@ gdt:
 	db 10001111b
 	db 0
 
-gdt_tss:
 	; tss segment 0x38
 	dw 104
-	dw 0
+	dw tss
 	db 0
 	db 11101001b
 	db 0

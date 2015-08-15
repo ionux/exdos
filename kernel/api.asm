@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function		= 35
+os_api_max_function			= 40
 
 ; os_api:
 ; Kernel API Entry Point
@@ -62,52 +62,60 @@ os_api:
 
 os_api_table:
 	; Core routines
-	dd execute_program
-	dd mem_info
-	dd kernel_info
-	dd kdebug_get_location			; Changed my mind, v8086 should be available for drivers only, not programs.
+	dd execute_program			; 0
+	dd mem_info				; 1
+	dd kernel_info				; 2
+	dd kdebug_get_location			; 3
 
 	; Display routines
-	dd clear_screen
-	dd print_string_graphics_cursor
-	dd print_string_graphics
-	dd print_string_transparent
-	dd move_cursor_graphics
-	dd put_pixel
-	dd draw_horz_line
-	dd fill_rect
-	dd alpha_draw_horz_line
-	dd alpha_fill_rect
-	dd alpha_blend_colors
-	dd draw_image
+	dd clear_screen				; 4
+	dd print_string_graphics_cursor		; 5
+	dd print_string_graphics		; 6
+	dd print_string_transparent		; 7
+	dd move_cursor_graphics			; 8
+	dd put_pixel				; 9
+	dd draw_horz_line			; 10
+	dd fill_rect				; 11
+	dd alpha_draw_horz_line			; 12
+	dd alpha_fill_rect			; 13
+	dd alpha_blend_colors			; 14
+	dd draw_image				; 15
+	dd get_screen_info			; 16
 
 	; Keyboard routines
-	dd get_char_wait
-	dd get_char_no_wait
-	dd get_string_echo
+	dd get_char_wait			; 17
+	dd get_char_no_wait			; 18
+	dd get_string_echo			; 19
 
 	; String-based routines
-	dd get_string_size
-	dd chomp_string
-	dd .int_to_string
-	dd .hex_byte_to_string
-	dd .hex_word_to_string
-	dd .hex_dword_to_string
-	dd compare_strings
+	dd get_string_size			; 20
+	dd chomp_string				; 21
+	dd .int_to_string			; 22
+	dd .hex_byte_to_string			; 23
+	dd .hex_word_to_string			; 24
+	dd .hex_dword_to_string			; 25
+	dd compare_strings			; 26
 
 	; Power-based routines
-	dd reboot
-	dd shutdown
+	dd reboot				; 27
+	dd shutdown				; 28
 
 	; Time-based routines
-	dd get_time_24
-	dd get_time_12
-	dd get_time_string_24
-	dd get_time_string_12
-	dd get_date
-	dd get_date_string_am
-	dd get_date_string_me
-	dd get_long_date_string
+	dd get_time_24				; 29
+	dd get_time_12				; 30
+	dd get_time_string_24			; 31
+	dd get_time_string_12			; 32
+	dd get_date				; 33
+	dd get_date_string_am			; 34
+	dd get_date_string_me			; 35
+	dd get_long_date_string			; 36
+
+	; Mouse routines
+	dd get_mouse_status			; 37
+	dd show_mouse_cursor			; 38
+	dd hide_mouse_cursor			; 39
+	dd set_mouse_cursor			; 40
+
 
 .int_to_string:
 	mov eax, ebx
