@@ -9,7 +9,7 @@ Features
 - Ring 3 protection.
 - ACPI (with shutdown and reset!)
 - PCI driver.
-- PS/2 keyboard driver.
+- PS/2 keyboard & mouse drivers.
 - BIOS disk access.
 - VESA 2.0 framebuffer driver.
 - Basic graphical routines (lines, squares, bitmap fonts, alpha blending, ...)
