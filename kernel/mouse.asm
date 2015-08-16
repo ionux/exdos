@@ -53,10 +53,6 @@ send_mouse_data:
 init_mouse:
 	cli
 
-	mov al, 32+12
-	mov ebp, mouse_irq
-	call install_isr		; install mouse IRQ handler
-
 	; enable auxiliary mouse device
 	call wait_ps2_write
 	mov al, 0xA8
@@ -96,7 +92,6 @@ init_mouse:
 
 	call wait_ps2_read
 	in al, 0x60
-	and al, 0xDF				; disable mouse clock
 	or al, 2				; enable IRQ 12
 	push eax
 
@@ -117,6 +112,10 @@ init_mouse:
 	mov edx, 0x7F7F7F			; make the cursor gray
 	call set_mouse_cursor
 	call show_mouse_cursor
+
+	mov al, 32+12
+	mov ebp, mouse_irq
+	call install_isr		; install mouse IRQ handler
 
 	ret
 
@@ -213,44 +212,40 @@ get_mouse_status:
 	jnz .done
 
 .do_x:
-	mov eax, [mouse_x]
-	movzx ebx, [mouse_irq.x]
+	movzx eax, byte[mouse_irq.x]
 
 	test byte[mouse_irq.data], 0x10
 	jnz .x_negative
 
 .x_positive:
-	add eax, ebx
-	mov [mouse_x], eax
+	add dword[mouse_x], eax
 	jmp .do_y
 
 .x_negative:
-	sub eax, ebx
-	mov [mouse_x], eax
+	xor eax, 0xFF
+	sub dword[mouse_x], eax
 
 .do_y:
-	mov eax, [mouse_y]
-	movzx ebx, [mouse_irq.y]
+	movzx eax, byte[mouse_irq.y]
 
 	test byte[mouse_irq.data], 0x20
 	jnz .y_negative
 
 .y_positive:
-	sub eax, ebx
-	mov [mouse_y], eax
+	;xor eax, 0xFF
+	sub dword[mouse_y], eax
 	jmp .check_x
 
 .y_negative:
-	add eax, ebx
-	mov [mouse_y], eax
+	xor eax, 0xFF
+	add dword[mouse_y], eax
 
 .check_x:
-	mov eax, [mouse_x]
-	test eax, 0x80000000				; if X is negative, make it zero
+	test dword[mouse_x], 0x80000000
 	jnz .x_zero
 
 	mov eax, [mouse_x]
-	cmp eax, [screen.width]
+	cmp eax, dword[screen.width]
 	jg .x_overflow
 
 	jmp .check_y
@@ -264,12 +259,11 @@ get_mouse_status:
 	mov [mouse_x], eax
 
 .check_y:
-	mov eax, [mouse_y]
-	test eax, 0x80000000
+	test dword[mouse_y], 0x80000000
 	jnz .y_zero
 
 	mov eax, [mouse_y]
-	cmp eax, [screen.height]
+	cmp eax, dword[screen.height]
 	jg .y_overflow
 
 	jmp .done
@@ -286,8 +280,8 @@ get_mouse_status:
 	popfd
 	mov eax, [mouse_x]
 	mov ebx, [mouse_y]
-	movzx ecx, [mouse_irq.data]
-	and ecx, 5					; keep only the button status
+	movzx ecx, byte[mouse_irq.data]
+	and ecx, 5
 
 	ret
 
