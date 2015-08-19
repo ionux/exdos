@@ -28,6 +28,14 @@ main:
 	os_api print_string_cursor
 
 cmd:
+	os_api show_text_cursor			; show text cursor
+
+	mov bx, 8				; mouse width 8
+	mov cx, 16				; height 16
+	mov edx, 0x7F7F7F			; color dark gray
+	os_api set_mouse_cursor
+	os_api show_mouse_cursor		; and show the cursor
+
 	mov esi, crlf
 	os_api print_string_cursor
 

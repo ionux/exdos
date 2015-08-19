@@ -67,14 +67,30 @@ kmain16:
 	mov si, _crlf
 	call print_string_16
 
+	mov ax, 0x1100
+	mov bp, font_data
+	mov cx, 0x100
+	mov dx, 0
+	mov bl, 0
+	mov bh, 16
+	int 0x10
+
 	call enable_a20				; enable A20 gate
 	call check_a20				; check A20 status
 	call detect_memory			; detect memory using E820, and use E801 if E820 fails
 	call verify_enough_memory		; verify we have enough usable RAM
-	call check_vbe				; check for VESA BIOS
+	;call check_vbe				; check for VESA BIOS
 
 get_vesa_mode_loop:
 	mov byte[is_paging_enabled], 0
+
+	mov ax, 0x1100
+	mov bp, font_data
+	mov cx, 0x100
+	mov dx, 0
+	mov bl, 0
+	mov bh, 16
+	int 0x10
 
 	mov si, _crlf
 	call print_string_16
@@ -204,6 +220,7 @@ kmain32:
 	call vmm_init				; start paging and virtual memory management
 	call init_pit				; set up PIT to 100 Hz
 	call init_kbd				; initialize PS/2 keyboard
+	call init_pci				; initialize legacy PCI
 
 	mov ax, [syswidth]
 	mov bx, [sysheight]
@@ -281,7 +298,6 @@ use32
 	call init_acpi_power			; initialize ACPI power management
 	call init_cmos				; initialize CMOS RTC clock
 	;call init_pcie				; PCI Express is not yet implemented
-	call init_pci				; initialize legacy PCI
 	;call ata_init				; initialize IDE ATA controller
 	;call ahci_init				; initialize SATA (AHCI) controller
 	call init_mouse				; initialize PS/2 mouse

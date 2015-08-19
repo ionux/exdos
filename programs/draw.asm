@@ -21,6 +21,8 @@ file_header:
 	.reserved		dd 0
 
 main:
+	os_api hide_text_cursor				; hide the text cursor
+
 	mov ebx, 0xFFFFFF				; clear the screen white
 	os_api clear_screen
 

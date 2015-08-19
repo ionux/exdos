@@ -64,7 +64,7 @@ vmm_init:
 
 	mov eax, stack_area			; map stack area to itself
 	mov ebx, stack_area
-	mov ecx, 3				; 8 KB
+	mov ecx, 2				; 8 KB
 	mov edx, 7				; user, present, read/write
 	call vmm_map_memory
 

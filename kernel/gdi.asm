@@ -13,6 +13,9 @@
 ;; Functions:
 ; get_pixel_offset
 ; redraw_screen
+; redraw_text_cursor
+; show_text_cursor
+; hide_text_cursor
 ; get_screen_center
 ; put_pixel
 ; move_cursor_graphics
@@ -37,6 +40,8 @@ use32
 
 text_background			dd 0
 text_foreground			dd 0xC0C0C0		; gray
+cursor_moved			db 0
+text_cursor_visible		db 0
 
 ; get_pixel_offset:
 ; Returns the offset of a pixel
@@ -76,19 +81,16 @@ get_pixel_offset:
 
 redraw_screen:
 	pusha
+
 	mov eax, [screen.height]
 	mov ebx, [screen.bytes_per_line]
 	mul ebx
 	add eax, dword[screen.bytes_per_line]
+	shr eax, 4
 
-	;mov ebx, 16
-	;mov edx, 0
-	;div ebx
-	shr eax, 4		; quick divide by 16
-
-	mov ecx, eax
 	mov esi, [screen.framebuffer]
 	mov edi, [screen.virtual_buffer]
+	mov ecx, eax
 
 .loop:
 	movdqa xmm0, [esi]
@@ -98,7 +100,76 @@ redraw_screen:
 	add edi, 16
 	loop .loop
 
+	cmp byte[cursor_moved], 1
+	je .cursor
+
 	popa
+	ret
+
+.cursor:
+	;mov byte[cursor_moved], 0
+	call redraw_text_cursor
+
+	popa
+	ret
+
+; redraw_text_cursor:
+; Redraws the text cursor
+
+redraw_text_cursor:
+	cmp byte[text_cursor_visible], 1
+	jne .quit
+
+	movzx eax, [x_cur]
+	shl eax, 3
+	movzx ebx, [y_cur]
+	shl ebx, 4
+	add ebx, 15
+	call get_pixel_offset
+
+	add eax, dword[screen.virtual_buffer]
+	mov edi, eax
+
+	cmp [screen.bpp], 32
+	jne .24bpp
+
+.32bpp:
+	mov eax, [text_foreground]
+	mov ecx, 8
+	rep stosd
+
+	ret
+
+.24bpp:
+	mov ecx, 8
+
+.24loop:
+	mov eax, [text_foreground]
+	stosb
+	shr eax, 8
+	stosb
+	shr eax, 8
+	stosb
+	loop .24loop
+
+	ret
+
+.quit:
+	ret
+
+; show_text_cursor:
+; Shows the text cursor
+
+show_text_cursor:
+	mov byte[text_cursor_visible], 1
+	ret
+
+; hide_text_cursor:
+; Hides the text cursor
+
+hide_text_cursor:
+	mov byte[text_cursor_visible], 0
+	call redraw_screen				; redraw the screen to hide the old cursor
 	ret
 
 ; get_screen_center:
@@ -165,6 +236,8 @@ put_pixel:
 move_cursor_graphics:
 	mov [x_cur], dl
 	mov [y_cur], dh
+	mov byte[cursor_moved], 1
+	call redraw_screen			; redraw the screen to show the new cursor
 
 	ret
 
@@ -394,6 +467,8 @@ put_char:
 put_char_cursor:
 	pusha
 	mov [.char], al
+
+	mov byte[cursor_moved], 1
 
 	mov al, [.char]
 
@@ -683,6 +758,7 @@ scroll_screen_graphics:
 	loop .clear_bottom_line
 
 .done:
+	mov byte[cursor_moved], 1
 	;call redraw_screen	; not doing this saves A LOT of performance!
 	popa
 	ret

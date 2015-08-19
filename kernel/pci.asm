@@ -103,26 +103,23 @@ use32
 pci_read_dword:
 	mov [.bus], al
 	mov [.slot], ah
-	mov [.func], bl
+	mov [.function], bl
 	mov [.offset], bh
 
 	mov eax, 0
-	mov ebx, 0
-	mov al, [.bus]
-	shl eax, 16
-	mov bl, [.slot]
+	movzx ebx, [.bus]
+	shl ebx, 16
+	or eax, ebx
+	movzx ebx, [.slot]
 	shl ebx, 11
 	or eax, ebx
-	mov ebx, 0
-	mov bl, [.func]
+	movzx ebx, [.function]
 	shl ebx, 8
 	or eax, ebx
-	mov ebx, 0
-	mov bl, [.offset]
+	movzx ebx, [.offset]
 	and ebx, 0xFC
 	or eax, ebx
-	mov ebx, 0x80000000
-	or eax, ebx
+	or eax, 0x80000000
 
 	mov edx, 0xCF8
 	out dx, eax
@@ -135,7 +132,7 @@ pci_read_dword:
 
 .tmp				dd 0
 .bus				db 0
-.func				db 0
+.function			db 0
 .slot				db 0
 .offset				db 0
 
@@ -224,7 +221,7 @@ pci_set_irq:
 .function			db 0
 .irq				db 0
 
-; pci_get_device:
+; pci_get_device_class:
 ; Gets the bus and device number of a PCI device from the class codes
 ; In\	AH = Class code
 ; In\	AL = Subclass code
@@ -233,7 +230,7 @@ pci_set_irq:
 ; Out\	AH = Device number (0xFF if invalid)
 ; Out\	BL = Function number (0xFF if invalid)
 
-pci_get_device:
+pci_get_device_class:
 	mov [.class], ax
 	mov [.prog_if], bl
 
@@ -303,6 +300,80 @@ pci_get_device:
 .class				dw 0
 .prog_if			db 0
 .tmp				dd 0
+.bus				db 0
+.device				db 0
+.function			db 0
+
+; pci_get_device_vendor:
+; Gets the bus and device and function of a PCI device from the vendor and device ID
+; In\	AX = Vendor ID
+; In\	BX = Device ID
+; Out\	AL = Bus number (0xFF if invalid)
+; Out\	AH = Device number (0xFF if invalid)
+; Out\	BL = Function number (0xFF if invalid)
+
+pci_get_device_vendor:
+	mov [.vendor_id], ax
+	mov [.device_id], bx
+
+	mov byte[.bus], 0
+	mov byte[.device], 0
+	mov byte[.function], 0
+
+.find_device:
+	; We'll search every function of every device on every bus...
+	mov al, [.bus]
+	mov ah, [.device]
+	mov bl, [.function]
+	mov bh, 0
+	call pci_read_dword
+
+	mov [.data], eax
+
+	mov eax, [.data]
+	cmp ax, word[.vendor_id]
+	jne .next_function
+
+	shr eax, 16
+	cmp ax, word[.device_id]
+	jne .next_function
+
+	jmp .done
+
+.next_function:
+	add byte[.function], 1
+	cmp byte[.function], 0xFF
+	je .next_device
+	jmp .find_device
+
+.next_device:
+	mov byte[.function], 0
+	add byte[.device], 1
+	cmp byte[.device], 0xFF
+	je .next_bus
+	jmp .find_device
+
+.next_bus:
+	mov byte[.device], 0
+	add byte[.bus], 1
+	cmp byte[.bus], 0xFF
+	je .error
+	jmp .find_device
+
+.done:
+	mov al, [.bus]
+	mov ah, [.device]
+	mov bl, [.function]
+	ret
+
+.error:
+	mov ax, 0xFFFF
+	mov bl, 0xFF
+	ret
+
+.vendor_id			dw 0
+.device_id			dw 0
+.data				dd 0
 .bus				db 0
 .device				db 0
 .function			db 0

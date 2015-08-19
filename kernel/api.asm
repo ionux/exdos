@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function			= 40
+os_api_max_function			= 42
 
 ; os_api:
 ; Kernel API Entry Point
@@ -81,40 +81,42 @@ os_api_table:
 	dd alpha_blend_colors			; 14
 	dd draw_image				; 15
 	dd get_screen_info			; 16
+	dd hide_text_cursor			; 17
+	dd show_text_cursor			; 18
 
 	; Keyboard routines
-	dd get_char_wait			; 17
-	dd get_char_no_wait			; 18
-	dd get_string_echo			; 19
+	dd get_char_wait			; 19
+	dd get_char_no_wait			; 20
+	dd get_string_echo			; 21
 
 	; String-based routines
-	dd get_string_size			; 20
-	dd chomp_string				; 21
-	dd .int_to_string			; 22
-	dd .hex_byte_to_string			; 23
-	dd .hex_word_to_string			; 24
-	dd .hex_dword_to_string			; 25
-	dd compare_strings			; 26
+	dd get_string_size			; 22
+	dd chomp_string				; 23
+	dd .int_to_string			; 24
+	dd .hex_byte_to_string			; 25
+	dd .hex_word_to_string			; 26
+	dd .hex_dword_to_string			; 27
+	dd compare_strings			; 28
 
 	; Power-based routines
-	dd reboot				; 27
-	dd shutdown				; 28
+	dd reboot				; 29
+	dd shutdown				; 30
 
 	; Time-based routines
-	dd get_time_24				; 29
-	dd get_time_12				; 30
-	dd get_time_string_24			; 31
-	dd get_time_string_12			; 32
-	dd get_date				; 33
-	dd get_date_string_am			; 34
-	dd get_date_string_me			; 35
-	dd get_long_date_string			; 36
+	dd get_time_24				; 31
+	dd get_time_12				; 32
+	dd get_time_string_24			; 33
+	dd get_time_string_12			; 34
+	dd get_date				; 35
+	dd get_date_string_am			; 36
+	dd get_date_string_me			; 37
+	dd get_long_date_string			; 38
 
 	; Mouse routines
-	dd get_mouse_status			; 37
-	dd show_mouse_cursor			; 38
-	dd hide_mouse_cursor			; 39
-	dd set_mouse_cursor			; 40
+	dd get_mouse_status			; 39
+	dd show_mouse_cursor			; 40
+	dd hide_mouse_cursor			; 41
+	dd set_mouse_cursor			; 42
 
 
 .int_to_string:

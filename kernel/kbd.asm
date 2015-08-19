@@ -380,6 +380,7 @@ get_string_echo:
 
 	mov [text_foreground], ebx
 	mov [text_background], ecx
+	call redraw_text_cursor
 
 	mov edi, [.string]
 	mov ecx, 256

@@ -66,7 +66,8 @@ load_tss:
 
 	pushfd
 	pop eax
-	or eax, 0x202			; interrupts are always enabled
+	;or eax, 0x202			; interrupts are always enabled
+	or eax, 2
 	mov dword[tss.eflags], eax
 
 	mov eax, 0x3B			; RPL 3

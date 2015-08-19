@@ -58,13 +58,6 @@ init_mouse:
 	mov al, 0xA8
 	out 0x64, al
 
-	; set mouse defaults
-	mov al, 0xF6
-	call send_mouse_data
-
-	call wait_ps2_read
-	in al, 0x60
-
 	; set resolution
 	mov al, 0xE8
 	call send_mouse_data
@@ -222,7 +215,7 @@ get_mouse_status:
 	jmp .do_y
 
 .x_negative:
-	xor eax, 0xFF
+	not al
 	sub dword[mouse_x], eax
 
 .do_y:
@@ -232,12 +225,11 @@ get_mouse_status:
 	jnz .y_negative
 
 .y_positive:
-	;xor eax, 0xFF
 	sub dword[mouse_y], eax
 	jmp .check_x
 
 .y_negative:
-	xor eax, 0xFF
+	not al
 	add dword[mouse_y], eax
 
 .check_x:
@@ -338,30 +330,32 @@ redraw_cursor:
 
 .check_x:
 	mov eax, [.x]
-	sub eax, dword[mouse_width]
-	cmp eax, [screen.width]
-	jg .x_overflow
+	mov ebx, [screen.width]
+	sub ebx, dword[mouse_width]
+
+	cmp eax, ebx
+	jge .x_overflow
 
 	jmp .check_y
 
 .x_overflow:
 	mov eax, [screen.width]
 	sub eax, dword[mouse_width]
-	dec eax
 	mov [.x], eax
 
 .check_y:
 	mov eax, [.y]
-	sub eax, dword[mouse_height]
-	cmp eax, [screen.height]
-	jg .y_overflow
+	mov ebx, [screen.height]
+	sub ebx, dword[mouse_height]
+
+	cmp eax, ebx
+	jge .y_overflow
 
 	jmp .draw
 
 .y_overflow:
 	mov eax, [screen.height]
 	sub eax, dword[mouse_height]
-	dec eax
 	mov [.y], eax
 
 .draw:
