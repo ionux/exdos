@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Wednesday, 12th August, 2015"
+define TODAY "Thursday, 20th August, 2015"
 
 _kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
 _api_version			dd 1

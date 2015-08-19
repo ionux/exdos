@@ -325,6 +325,7 @@ help_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db " date         -- Shows the date",13,10
 			db " exit         -- Shuts down the system",13,10
 			db " kdebug       -- Shows kernel messages",13,10
+			db " meminfo      -- Shows memory usage",13,10
 			db " reboot       -- Reboots the PC",13,10
 			db " time         -- Shows the time",0
 
