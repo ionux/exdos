@@ -143,9 +143,9 @@ times 0x1BE - ($-$$) db 0
 
 part1:
 	.boot			db 0x80
-	.chs			db 0
+	.chs			db 1
 				db 1
-				db 1
+				db 0
 	.type			db 0xF3
 	.end_chs		db 59
 				db 9
