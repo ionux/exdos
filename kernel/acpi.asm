@@ -29,8 +29,6 @@ is_there_acpi			db 0
 ; Initializes ACPI
 
 init_acpi:
-	sti
-
 	mov esi, .debug_msg1
 	call kdebug_print
 
@@ -292,6 +290,29 @@ init_acpi_power:
 	mov ecx, end_of_acpi_fadt - acpi_fadt
 	rep movsb
 
+	mov esi, .irq_msg
+	call kdebug_print
+
+	movzx eax, [acpi_fadt.sci_interrupt]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .int_msg
+	call kdebug_print_noprefix
+
+	mov ax, [acpi_fadt.sci_interrupt]
+	add ax, 32
+	call hex_byte_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	mov ax, [acpi_fadt.sci_interrupt]
+	add ax, 32					; we mapped IRQ 0-15 to INT 32-47
+	mov ebp, acpi_irq				; install the IRQ handler
+	call install_isr
+
 	cmp byte[acpi_fadt.acpi_enable], 0		; is ACPI enabled?
 	je .already_enabled
 
@@ -405,29 +426,6 @@ init_acpi_power:
 	mov ax, 0
 	or ax, 0x2000					; set bit 13 (SLP_EN)
 	mov [acpi_slp_en], ax
-
-	mov esi, .irq_msg
-	call kdebug_print
-
-	movzx eax, [acpi_fadt.sci_interrupt]
-	call int_to_string
-	call kdebug_print_noprefix
-
-	mov esi, .int_msg
-	call kdebug_print_noprefix
-
-	mov ax, [acpi_fadt.sci_interrupt]
-	add ax, 32
-	call hex_byte_to_string
-	call kdebug_print_noprefix
-
-	mov esi, _crlf
-	call kdebug_print_noprefix
-
-	mov ax, [acpi_fadt.sci_interrupt]
-	add ax, 32					; we mapped IRQ 0-15 to INT 32-47
-	mov ebp, acpi_irq				; install the IRQ handler
-	call install_isr
 
 	ret
 

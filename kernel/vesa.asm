@@ -323,8 +323,28 @@ use32
 	ret
 
 .no_memory:
-	cli
-	hlt
+	call go16
+
+use16
+
+	mov ax, 3
+	int 0x10
+
+	mov ax, 0x1100
+	mov bp, font_data
+	mov cx, 0x100
+	mov dx, 0
+	mov bl, 0
+	mov bh, 16
+	int 0x10
+
+	mov si, _crlf
+	call print_string_16
+
+	mov si, .no_memory_msg
+	call print_string_16
+
+	jmp $
 
 .width				dw 0
 .height				dw 0
@@ -332,6 +352,7 @@ use32
 .tmp				dw 0
 .segment			dw 0
 .mode				dw 0
+.no_memory_msg			db "Boot error: No memory for VESA framebuffer found.",0
 
 use32
 

@@ -20,7 +20,6 @@ use32
 ; Detects CPU vendor and brand string
 
 init_cpuid:
-	cli
 	mov eax, 0
 	cpuid
 

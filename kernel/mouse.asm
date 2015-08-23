@@ -58,6 +58,27 @@ init_mouse:
 	mov al, 0xA8
 	out 0x64, al
 
+	; reset mouse device
+	mov al, 0xFF
+	call send_mouse_data
+
+	call wait_ps2_read
+	in al, 0x60			; acknowledge byte
+
+.wait_for_status:
+	; The mouse will return 0xAA on success.
+	call wait_ps2_read
+	in al, 0x60
+
+	cmp al, 0xAA
+	je .reset_finished
+
+	jmp .wait_for_status
+
+.reset_finished:
+	call wait_ps2_read
+	in al, 0x60			; read MouseID byte
+
 	; set resolution
 	mov al, 0xE8
 	call send_mouse_data

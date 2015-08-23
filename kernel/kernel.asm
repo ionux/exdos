@@ -38,7 +38,7 @@ sysheight			dw 0
 sysbpp				db 0
 
 api_version			= 1
-stack_size			= 8192				; reserve 8 KB of stack space
+stack_size			= 4096				; reserve 4 KB of stack space
 
 kmain16:
 	cli
@@ -158,7 +158,7 @@ get_vesa_mode_loop:
 	mov [sysheight], 600
 
 .set_mode:
-	jmp enter_pmode
+	jmp check_serial_loop
 
 .error:
 	mov ax, 3
@@ -181,6 +181,59 @@ get_vesa_mode_loop:
 			db "Your choice: ",0
 .bad_resol_msg		db "This resolution is not supported by your graphics card or your display.",13,10
 			db "Please try another resolution.",13,10,0
+
+check_serial_loop:
+	mov si, _crlf
+	call print_string_16
+	mov si, _crlf
+	call print_string_16
+
+	mov si, .msg
+	call print_string_16
+
+.loop:
+	mov ax, 0
+	int 0x16
+
+	cmp al, 13
+	je .loop
+
+	cmp al, 8
+	je .loop
+
+	push ax
+	mov ah, 0xE
+	int 0x10
+	mov ah, 0xE
+	mov al, 8
+	int 0x10
+	pop ax
+
+	cmp al, 'y'
+	je .yes
+
+	cmp al, 'Y'
+	je .yes
+
+	cmp al, 'n'
+	je .no
+
+	cmp al, 'N'
+	je .no
+
+	jmp .loop
+
+.yes:
+	mov byte[serial_enabled], 1
+	jmp enter_pmode
+
+.no:
+	mov byte[serial_enabled], 0
+	jmp enter_pmode
+
+.msg			db "Should the kernel debug messages be forwarded to serial port? (y/N)",13,10
+			db "Your choice: ",0
+serial_enabled		db 0
 
 enter_pmode:
 	cli
@@ -381,11 +434,11 @@ db				"This program is property of Omar Mohammad.",0
 
 align 4096			; stack will be in its own page so we can map it as read/write
 
-stack_area:			rb stack_size			; 8 KB of stack space
+stack_area:			rb stack_size			; 4 KB of stack space
 
 align 32
 
-memory_map:			rq 64				; 1 KB of space for E820 memory map
+memory_map:
 
 page_directory			= 0x70000
 

@@ -24,6 +24,9 @@ serial_ioport				dw 0
 ; Initializes the serial port
 
 init_serial:
+	cmp byte[serial_enabled], 0
+	je .no_serial
+
 	mov edi, 0x400
 	cmp word[edi], 0
 	je .no_serial

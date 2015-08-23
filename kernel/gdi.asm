@@ -138,6 +138,13 @@ redraw_text_cursor:
 	mov ecx, 8
 	rep stosd
 
+	add edi, dword[screen.bytes_per_line]
+	sub edi, 4*8
+
+	mov eax, [text_foreground]
+	mov ecx, 8
+	rep stosd
+
 	ret
 
 .24bpp:
@@ -150,9 +157,22 @@ redraw_text_cursor:
 	stosb
 	shr eax, 8
 	stosb
+
 	loop .24loop
 
-	ret
+	add edi, dword[screen.bytes_per_line]			; skip to the next line
+	sub edi, 3*8
+	mov ecx, 8
+
+.24loop2:
+	mov eax, [text_foreground]
+	stosb
+	shr eax, 8
+	stosb
+	shr eax, 8
+	stosb
+
+	loop .24loop2
 
 .quit:
 	ret
@@ -481,6 +501,10 @@ put_char_cursor:
 	cmp al, 8
 	je .backspace
 
+	mov al, [y_cur]
+	cmp al, byte[y_cur_max]
+	jg .y_overflow
+
 	mov al, [x_cur]
 	cmp al, byte[x_cur_max]
 	jge .x_overflow
@@ -706,7 +730,7 @@ scroll_screen_graphics:
 	;mov ebx, [screen.bytes_per_line]
 	;mul ebx
 	mov eax, [screen.bytes_per_line]
-	shl eax, 4			; quick multiply by 16
+	;shl eax, 4			; quick multiply by 16
 	mov [.size_of_line], eax
 
 	mov eax, [screen.height]
@@ -740,7 +764,7 @@ scroll_screen_graphics:
 	;mov ebx, 16
 	;mov edx, 0
 	;div ebx
-	shr eax, 4			; quick divide by 16
+	;shr eax, 4			; quick divide by 16
 	mov [.size_of_line], eax
 
 	mov ebx, [screen.height]

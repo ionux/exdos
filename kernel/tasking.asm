@@ -58,8 +58,6 @@ tss:
 ; Loads the task state segment
 
 load_tss:
-	cli
-
 	mov eax, stack_area+stack_size
 	mov dword[tss.esp0], eax
 	mov dword[tss.esp], eax
@@ -79,8 +77,6 @@ load_tss:
 ; Initializes SYSENTER/SYSEXIT instructions
 
 init_sysenter:
-	cli
-
 	mov eax, 1
 	cpuid
 
