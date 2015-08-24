@@ -402,6 +402,10 @@ use32
 	mov cr0, eax
 
 .done:
+	mov al, 0x20
+	mov ah, 0x28
+	call remap_pic
+
 	sti
 
 	pop edx
@@ -426,6 +430,10 @@ go16:
 	push edx
 
 	cli
+
+	mov al, 8
+	mov ah, 0x70
+	call remap_pic
 
 	mov eax, cr0
 	and eax, 0x7FFFFFFF		; disable paging
@@ -479,52 +487,88 @@ use32
 
 ; remap_pic:
 ; Remaps vectors on the PIC
+; In\	AL = Master PIC offset
+; In\	AH = Slave PIC offset
 
 remap_pic:
 	cli
 
-	; remap the IRQs on the PIC
+	mov [.master], al
+	mov [.slave], ah
+
+	in al, 0x21
+	mov [.data1], al
+	in al, 0xA1
+	mov [.data2], al
+
 	mov al, 0x11
 	out 0x20, al
+	call iowait
 	
 	mov al, 0x11
 	out 0xA0, al
+	call iowait
 	
-	mov al, 0x20
+	mov al, [.master]
 	out 0x21, al
-	
-	mov al, 0x28
+	call iowait
+
+	mov al, [.slave]
 	out 0xA1, al
-	
+	call iowait
+
 	mov al, 4
 	out 0x21, al
-	
+	call iowait
+
 	mov al, 2
 	out 0xA1, al
-	
-	mov al, 1
-	out 0x21, al
-	
-	mov al, 1
-	out 0xA1, al
-	
-	mov al, 0
-	out 0x21, al
-	
-	mov al, 0
-	out 0xA1, al
+	call iowait
 
-	; remap the real mode IVT as well
+	mov al, 1
+	out 0x21, al
+	call iowait
+
+	mov al, 1
+	out 0xA1, al
+	call iowait
+
+	mov al, [.data1]
+	out 0x21, al
+	call iowait
+
+	mov al, [.data2]
+	out 0xA1, al
+	call iowait
+
+	; remap the real mode IVT
 	mov esi, 8*4
 	mov edi, 0x20*4
 	mov ecx, 8*4
-	rep movsb
+	;rep movsb
 
-	mov esi, 0x70*4
-	mov edi, 0x28*4
-	mov ecx, 8*4
-	rep movsb
+	ret
 
+.data1				db 0
+.data2				db 0
+.master				db 0
+.slave				db 0
+
+; iowait:
+; Waits for an I/O operation to complete
+
+iowait:
+	pusha
+	mov ecx, 0xFFFF
+
+.loop:
+	nop
+	nop
+	nop
+	nop
+	loop .loop
+
+	popa
 	ret
 
 ; init_pit:

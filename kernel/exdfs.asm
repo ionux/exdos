@@ -100,6 +100,12 @@ detect_exdfs:
 ; Out\	EDI = Internal file name as ASCIIZ string
 
 internal_filename:
+	cmp byte[esi], 0
+	je .error
+
+	cmp byte[esi], 0xAF
+	je .error
+
 	mov eax, 0
 	mov edi, new_filename
 	mov ecx, 13
@@ -166,6 +172,11 @@ internal_filename:
 	ret
 
 .error:
+	mov edi, new_filename
+	mov al, 0xFE
+	mov ecx, 11
+	rep stosb
+
 	mov eax, 1
 	mov edi, 0
 	ret

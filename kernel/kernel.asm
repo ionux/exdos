@@ -267,7 +267,11 @@ kmain32:
 	call init_serial			; enable serial port
 	call kdebug_init			; initialize kernel debugger
 	call init_exceptions			; we should install exceptions handlers before anything, just to be safe
-	call remap_pic				; remap IRQ 0-15 to INT 32-47
+
+	mov al, 0x20
+	mov ah, 0x28
+	call remap_pic
+
 	call init_sse				; enable SSE
 	call pmm_init				; initalize physical memory manager
 	call vmm_init				; start paging and virtual memory management
