@@ -402,7 +402,7 @@ use32
 	mov cr0, eax
 
 .done:
-	mov al, 0x20
+	mov al, 0x20				; map IRQ 0-15 to INT 0x20-0x28
 	mov ah, 0x28
 	call remap_pic
 
@@ -431,6 +431,9 @@ go16:
 
 	cli
 
+	; restore BIOS configuration of the PIC
+	; that is, IRQ 0-7 from INT 8 - 0x0F
+	; and IRQ 8-15 from INT 0x70 - 0x77
 	mov al, 8
 	mov ah, 0x70
 	call remap_pic
@@ -489,19 +492,24 @@ use32
 ; Remaps vectors on the PIC
 ; In\	AL = Master PIC offset
 ; In\	AH = Slave PIC offset
+; Out\	Nothing
 
 remap_pic:
+	pushfd
 	cli
 
 	mov [.master], al
 	mov [.slave], ah
 
-	in al, 0x21
+	in al, 0x21			; save masks
 	mov [.data1], al
+	call iowait
+
 	in al, 0xA1
 	mov [.data2], al
+	call iowait
 
-	mov al, 0x11
+	mov al, 0x11			; initialize command
 	out 0x20, al
 	call iowait
 	
@@ -541,12 +549,7 @@ remap_pic:
 	out 0xA1, al
 	call iowait
 
-	; remap the real mode IVT
-	mov esi, 8*4
-	mov edi, 0x20*4
-	mov ecx, 8*4
-	;rep movsb
-
+	popfd
 	ret
 
 .data1				db 0
