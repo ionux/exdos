@@ -109,6 +109,13 @@ cmd:
 	je date
 
 	mov esi, input_buffer
+	mov edi, dir_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je dir
+
+	mov esi, input_buffer
 	os_api execute_program
 
 	cmp ebx, 0
@@ -169,7 +176,7 @@ mem_error_program:
 help:
 	mov esi, help_msg
 	mov ecx, 0
-	mov edx, 0x2020BF
+	mov edx, 0xFF007F
 	os_api print_string_cursor
 
 	mov esi, crlf
@@ -301,6 +308,27 @@ date:
 	os_api print_string_cursor
 	jmp cmd
 
+dir:
+	os_api get_filenames_string
+	mov [.tmp], esi
+
+	mov esi, [.tmp]
+	mov dl, ','			; the list is comma-separated
+	mov dh, 10			; we'll replace all the commas with new lines :)
+	os_api replace_byte_in_string
+
+	mov esi, [.tmp]
+	mov ecx, 0
+	mov edx, 0x7F00FF
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+
+	jmp cmd
+
+.tmp			dd 0
+
 crlf			db 13,10,0
 title_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db "(C) 2015 by Omar Mohammad.",13,10
@@ -319,10 +347,12 @@ reboot_command		db "reboot",0
 meminfo_command		db "meminfo",0
 time_command		db "time",0
 date_command		db "date",0
+dir_command		db "dir",0
 help_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
 			db "Command list:",13,10,13,10
 			db " clear        -- Clears the screen",13,10
 			db " date         -- Shows the date",13,10
+			db " dir          -- Shows list of files on disk",13,10
 			db " exit         -- Shuts down the system",13,10
 			db " kdebug       -- Shows kernel messages",13,10
 			db " meminfo      -- Shows memory usage",13,10

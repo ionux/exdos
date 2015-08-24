@@ -12,6 +12,7 @@
 
 ;; Functions:
 ; find_byte_in_string
+; replace_byte_in_string
 ; get_string_size
 ; compare_strings
 ; chomp_string
@@ -46,6 +47,46 @@ find_byte_in_string:
 	dec esi
 	clc
 	ret
+
+; replace_byte_in_string:
+; Replaces a byte in a string
+; In\	ESI = String
+; In\	DL = Byte to find
+; In\	DH = Byte to replace with
+; Out\	Nothing
+
+replace_byte_in_string:
+	mov [.byte_to_find], dl
+	mov [.byte_to_replace], dh
+
+	call get_string_size
+	mov ecx, eax
+
+.loop:
+	mov al, byte[esi]
+	cmp al, byte[.byte_to_find]
+	je .found
+
+	inc esi
+	dec ecx
+	cmp ecx, 0
+	je .done
+	jmp .loop
+
+.found:
+	mov al, byte[.byte_to_replace]
+	mov byte[esi], al
+	inc esi
+	dec ecx
+	cmp ecx, 0
+	je .done
+	jmp .loop
+
+.done:
+	ret
+
+.byte_to_find			db 0
+.byte_to_replace		db 0
 
 ; get_string_size:
 ; Returns the size of a string

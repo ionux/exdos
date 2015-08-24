@@ -28,6 +28,12 @@ init_cpuid:
 	mov dword[edi+4], edx
 	mov dword[edi+8], ecx
 
+	mov eax, 0x80000000
+	cpuid
+
+	cmp eax, 0x80000004
+	jl .no_extended
+
 	mov eax, 0x80000002
 	cpuid
 
@@ -79,7 +85,12 @@ init_cpuid:
 
 	ret
 
+.no_extended:
+	mov esi, .no_vendor_msg
+	jmp draw_boot_error
+
 .debug_msg1			db "cpu: CPU brand is ",0
+.no_vendor_msg			db "CPU doesn't support CPUID extended functions.",0
 
 cpu_vendor:			times 13 db 0
 cpu_brand:			times 50 db 0

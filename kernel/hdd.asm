@@ -14,6 +14,7 @@
 ; init_hdd
 ; hdd_read_sectors
 ; hdd_write_sectors
+; hdd_get_info
 
 use32
 
@@ -106,20 +107,17 @@ use32
 use16
 
 .fail:
-	mov ax, 3
-	int 0x10
+	call go32
 
-	mov si, .fail_msg
-	call print_string_16
+use32
 
-	jmp $
+	mov esi, .fail_msg
+	jmp draw_boot_error
 
-.fail_msg			db "Boot error: Hard disk failure.",0
+.fail_msg			db "Failed to access the boot drive: hard disk failure.",0
 .debug_msg1			db "hdd: BIOS boot drive number is ",0
 .debug_msg2			db "hdd: disk size is ",0
 .debug_msg3			db " MB.",10,0
-
-use32
 
 ; hdd_read_sectors:
 ; Reads a series of sectors from the hard disk
@@ -249,35 +247,43 @@ hdd_write_sectors:
 	mov [.sectors], ebx
 	mov [.buffer], esi
 
-	mov eax, [.sectors]
-	mov ebx, 512
-	mul ebx
-	mov ecx, eax
+.start:
+	cmp dword[.sectors], 0
+	je .done
+
+	cmp dword[.sectors], 127
+	jg .big
+
 	mov esi, [.buffer]
-	mov edi, 0x40000		; copy the buffer to low memory so that BIOS can work
+	mov edi, 0x40000
+	mov ecx, [.sectors]
+	shl ecx, 9			; quick multiply by 512
 	rep movsb
 
 	call go16
 
 use16
 
+	mov eax, [.lba]
+	mov [dap.lba], eax
+	mov word[dap.segment], 0x4000
+	mov word[dap.offset], 0
+	mov eax, [.sectors]
+	mov [dap.sectors], ax
+
 	mov ax, 0
 	mov dl, [bootdisk]
 	int 0x13
-	jc .fail
+	jc .error
 
-	mov ebx, [.sectors]
-	mov [dap.sectors], bx
-	mov ebx, [.lba]
-	mov [dap.lba], ebx
-	mov word[dap.segment], 0x4000
-	mov word[dap.offset], 0
-
-	mov ah, 0x43			; extended write
+	mov ah, 0x43			; extended write sectors
 	mov dl, [bootdisk]
 	mov si, dap
 	int 0x13
-	jc .fail
+	jc .error
+
+	mov edx, [.sectors]
+	add dword[diskstat.write], edx
 
 	call go32
 
@@ -286,9 +292,52 @@ use32
 	clc
 	ret
 
+.big:
+	mov esi, [.buffer]
+	mov ecx, 127*512
+	mov edi, 0x40000
+	rep movsb
+	add dword[.buffer], 127*512
+
+	call go16
+
 use16
 
-.fail:
+	mov eax, [.lba]
+	mov [dap.lba], eax
+	mov word[dap.segment], 0x4000
+	mov word[dap.offset], 0
+	mov word[dap.sectors], 127
+
+	mov ax, 0
+	mov dl, [bootdisk]
+	int 0x13
+	jc .error
+
+	mov ah, 0x43
+	mov dl, [bootdisk]
+	mov si, dap
+	int 0x13
+	jc .error
+
+	add dword[diskstat.write], 127
+	add dword[.lba], 127
+	sub dword[.sectors], 127
+
+	call go32
+
+use32
+
+	jmp .start
+
+.done:
+	clc
+	mov eax, 0
+	ret
+
+use16
+
+.error:
 	call go32
 
 use32
@@ -299,6 +348,19 @@ use32
 .lba			dd 0
 .sectors		dd 0
 .buffer			dd 0
+
+; hdd_get_info:
+; Gets hard disk I/O stats
+; In\	Nothing
+; Out\	EAX = Hard disk size in MB
+; Out\	EBX = Number of sectors read since boot
+; Out\	ECX = Number of sectors written since boot
+
+hdd_get_info:
+	mov eax, [disk_size_mb]
+	mov ebx, [diskstat.read]
+	mov ecx, [diskstat.write]
+	ret
 
 
 

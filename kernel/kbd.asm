@@ -254,6 +254,19 @@ kbd_irq:
 	mov byte[last_character], 0
 
 .done:
+	mov al, [last_character]
+	cmp al, 0
+	je .quit
+
+	cmp dword[kbd_buffer_used_space], 0
+	je .quit
+
+	mov edi, [kbd_buffer_free_space]
+	stosb
+	mov [kbd_buffer_free_space], edi
+	add dword[kbd_buffer_used_space], 1
+
+.quit:
 	mov al, 0x20
 	out 0x20, al
 
@@ -271,6 +284,10 @@ kbd_irq:
 
 last_character			db 0
 last_scancode			db 0
+
+kbd_buffer:			times 32 db 0
+kbd_buffer_used_space		dd 0
+kbd_buffer_free_space		dd kbd_buffer
 
 align 32
 
@@ -394,7 +411,25 @@ get_string_echo:
 	add edi, 255
 	mov [.end_string], edi
 
+	mov esi, kbd_buffer
+	mov ecx, [kbd_buffer_used_space]
 	mov edi, [.string]
+	rep movsb
+
+	mov edi, kbd_buffer
+	mov ecx, 32/4
+	mov eax, 0
+	rep stosd
+
+	mov eax, [kbd_buffer_used_space]
+	add dword[.string], eax
+
+	mov dword[kbd_buffer_used_space], 0
+	mov dword[kbd_buffer_free_space], kbd_buffer
+
+	mov edi, [.string]
+	mov ecx, [text_background]
+	mov edx, [text_foreground]
 
 .loop:
 	call get_char_wait			; get a character from the keyboard
@@ -406,22 +441,23 @@ get_string_echo:
 	je .done
 
 	; If neither, it's a normal character, save it and print it
-	push eax
+	;push eax
 	stosb
-	pop eax
+	;pop eax
 
-	push edi
-	push eax
-	mov edi, .tmp
-	stosb
-	mov al, 0
-	stosb
+	;push edi
+	;push eax
+	;mov edi, .tmp
+	;stosb
+	mov byte[.tmp], al
+	;mov al, 0
+	;stosb
 	mov esi, .tmp
-	mov ecx, [text_background]
-	mov edx, [text_foreground]
+	;mov ecx, [text_background]
+	;mov edx, [text_foreground]
 	call print_string_graphics_cursor
-	pop eax
-	pop edi
+	;pop eax
+	;pop edi
 
 	cmp edi, [.end_string]
 	je .done

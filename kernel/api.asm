@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function			= 42
+os_api_max_function			= 47
 
 ; os_api:
 ; Kernel API Entry Point
@@ -97,27 +97,37 @@ os_api_table:
 	dd .hex_word_to_string			; 26
 	dd .hex_dword_to_string			; 27
 	dd compare_strings			; 28
+	dd replace_byte_in_string		; 29
 
 	; Power-based routines
-	dd reboot				; 29
-	dd shutdown				; 30
+	dd reboot				; 30
+	dd shutdown				; 31
 
 	; Time-based routines
-	dd get_time_24				; 31
-	dd get_time_12				; 32
-	dd get_time_string_24			; 33
-	dd get_time_string_12			; 34
-	dd get_date				; 35
-	dd get_date_string_am			; 36
-	dd get_date_string_me			; 37
-	dd get_long_date_string			; 38
+	dd get_time_24				; 32
+	dd get_time_12				; 33
+	dd get_time_string_24			; 34
+	dd get_time_string_12			; 35
+	dd get_date				; 36
+	dd get_date_string_am			; 37
+	dd get_date_string_me			; 38
+	dd get_long_date_string			; 39
 
 	; Mouse routines
-	dd get_mouse_status			; 39
-	dd show_mouse_cursor			; 40
-	dd hide_mouse_cursor			; 41
-	dd set_mouse_cursor			; 42
+	dd get_mouse_status			; 40
+	dd show_mouse_cursor			; 41
+	dd hide_mouse_cursor			; 42
+	dd set_mouse_cursor			; 43
 
+	; Disk I/O routines
+	dd hdd_get_info				; 44
+	dd get_filenames_string			; 45
+	dd get_file_size			; 46
+	dd load_file				; 47
+	;dd write_file				; 48
+	;dd delete_file				; 49
+	;dd copy_file				; 50
+	;dd rename_file				; 51
 
 .int_to_string:
 	mov eax, ebx
@@ -169,10 +179,14 @@ mem_info:
 ; In\	Nothing
 ; Out\	ESI = Kernel version string
 ; Out\	EAX = API version
+; Out\	EBX = Pointer to CPU brand string
+; Out\	ECX = CPU speed in MHz
 
 kernel_info:
 	mov esi, _kernel_version
 	mov eax, [_api_version]
+	mov ebx, cpu_brand
+	movzx ecx, [cpu_speed]
 
 	ret
 

@@ -158,6 +158,30 @@ set_vesa_mode:
 	mov [.height], bx
 	mov [.bpp], cl
 
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	movzx eax, [.width]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	movzx eax, [.height]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	movzx eax, [.bpp]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
 	call go16
 
 use16
@@ -251,6 +275,11 @@ use16
 
 use32
 
+	pusha
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	popa
 	ret
 
 use16
@@ -259,6 +288,16 @@ use16
 	call go32
 
 use32
+
+	mov esi, .debug_msg3
+	call kdebug_print
+
+	mov ax, [.mode]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
 
 	movzx eax, word[.width]
 	mov [screen.width], eax
@@ -353,6 +392,10 @@ use16
 .segment			dw 0
 .mode				dw 0
 .no_memory_msg			db "Boot error: No memory for VESA framebuffer found.",0
+.debug_msg1			db "vbe: trying to set VBE mode ",0
+.debug_msg2			db "x",0
+.debug_msg3			db "vbe: done, mode number 0x",0
+.debug_msg4			db "vbe: failed...",10,0
 
 use32
 

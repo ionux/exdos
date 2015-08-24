@@ -14,7 +14,11 @@
 ; internal_filename
 ; external_filename
 ; load_root_directory
+; write_root_directory
 ; load_file
+; does_file_exist
+; get_filenames_string
+; get_file_size
 
 use32
 
@@ -157,6 +161,18 @@ load_root_directory:
 
 	ret
 
+; write_root_directory:
+; Writes the root directory to the disk
+
+write_root_directory:
+	mov eax, 1
+	add eax, dword[boot_partition.lba]
+	mov ebx, 32
+	mov esi, disk_buffer
+	call hdd_write_sectors
+
+	ret
+
 ; load_file:
 ; Loads file into RAM
 ; In\	ESI = File name
@@ -221,5 +237,153 @@ load_file:
 
 .location			dd 0
 .size				dd 0
+
+; does_file_exist:
+; Checks if a file exists
+; In\	ESI = Filename
+; Out\	EAX = 1 if file exists
+
+does_file_exist:
+	call internal_filename
+	call load_root_directory
+
+	mov esi, disk_buffer+32			; the first root entry is reserved
+	mov edi, new_filename
+	mov ecx, 1
+
+.loop:
+	pusha
+	mov ecx, 11
+	rep cmpsb
+	je .yes
+	popa
+	
+	add ecx, 1
+	cmp ecx, 512
+	je .no
+
+	add esi, 32
+	jmp .loop
+
+.yes:
+	mov eax, 1
+	ret
+
+.no:
+	mov eax, 0
+	ret
+
+; get_filenames_string:
+; Returns a comma-separated list of files on the disk
+; In\	Nothing
+; Out\	EAX = 0 on success, 1 on error
+; Out\	ESI = Pointer to ASCIIZ string
+
+get_filenames_string:
+	call load_root_directory
+	jc .error
+
+	mov edi, disk_buffer
+	mov [.tmp], edi
+
+	mov esi, disk_buffer+32
+	mov ecx, 1
+
+.loop:
+	cmp ecx, 512
+	je .done
+
+	cmp byte[esi], 0			; unused entry and no entries after are used...
+	je .done
+
+	cmp byte[esi], 0xAF			; deleted file
+	je .skip
+
+	push esi
+	call external_filename
+
+	mov esi, new_filename
+	call get_string_size
+
+	mov esi, new_filename
+	mov ecx, eax
+	mov edi, [.tmp]
+	rep movsb
+
+	mov al, ','
+	stosb
+
+	mov [.tmp], edi
+	pop esi
+	add esi, 32			; go to next entry
+	add ecx, 1
+	jmp .loop
+
+.skip:
+	add esi, 32
+	add ecx, 1
+	jmp .loop
+
+.done:
+	mov edi, [.tmp]
+	dec edi				; get rid of the last comma
+	mov byte[edi], 0		; null-terminated the string
+
+	mov eax, 0
+	mov esi, disk_buffer
+	ret
+
+.error:
+	mov eax, 1
+	ret
+
+.tmp				dd 0
+
+; get_file_size:
+; Gets the size of a file in bytes
+; In\	ESI = Filename
+; Out\	EAX = 0 on success, 1 on error
+; Out\	ECX = Size of file
+
+get_file_size:
+	call internal_filename
+	call load_root_directory
+	jc .error
+
+	mov esi, disk_buffer+32
+	mov edi, new_filename
+	mov ecx, 1
+
+.loop:
+	pusha
+	mov ecx, 11
+	rep cmpsb
+	je .found_file
+	popa
+
+	add ecx, 1
+	cmp ecx, 512
+	je .error
+
+	add esi, 32
+	jmp .loop
+
+.found_file:
+	add esi, 1
+	mov ecx, [esi+8]
+	mov [.size], ecx
+
+	popa
+	mov eax, 0
+	mov ecx, [.size]
+	ret
+
+.error:
+	mov eax, 1
+	mov ecx, 0
+	ret
+
+.size				dd 0
+
 
 

@@ -83,9 +83,10 @@ redraw_screen:
 	pusha
 
 	mov eax, [screen.height]
+	add eax, 1
 	mov ebx, [screen.bytes_per_line]
 	mul ebx
-	add eax, dword[screen.bytes_per_line]
+	;add eax, dword[screen.bytes_per_line]
 	shr eax, 4
 
 	mov esi, [screen.framebuffer]
@@ -100,13 +101,6 @@ redraw_screen:
 	add edi, 16
 	loop .loop
 
-	cmp byte[cursor_moved], 1
-	je .cursor
-
-	popa
-	ret
-
-.cursor:
 	;mov byte[cursor_moved], 0
 	call redraw_text_cursor
 
@@ -138,12 +132,12 @@ redraw_text_cursor:
 	mov ecx, 8
 	rep stosd
 
-	add edi, dword[screen.bytes_per_line]
-	sub edi, 4*8
+	;add edi, dword[screen.bytes_per_line]
+	;sub edi, 4*8
 
-	mov eax, [text_foreground]
-	mov ecx, 8
-	rep stosd
+	;mov eax, [text_foreground]
+	;mov ecx, 8
+	;rep stosd
 
 	ret
 
@@ -160,9 +154,10 @@ redraw_text_cursor:
 
 	loop .24loop
 
-	add edi, dword[screen.bytes_per_line]			; skip to the next line
-	sub edi, 3*8
-	mov ecx, 8
+	;add edi, dword[screen.bytes_per_line]			; skip to the next line
+	;sub edi, 3*8
+	;mov ecx, 8
+	ret
 
 .24loop2:
 	mov eax, [text_foreground]
@@ -389,8 +384,9 @@ put_char:
 
 	mov al, [.char]
 	and eax, 0xFF
-	mov ebx, 16
-	mul ebx
+	;mov ebx, 16
+	;mul ebx
+	shl eax, 4
 	mov esi, font_data
 	add esi, eax
 	mov [.font_data], esi
@@ -488,7 +484,7 @@ put_char_cursor:
 	pusha
 	mov [.char], al
 
-	mov byte[cursor_moved], 1
+	;mov byte[cursor_moved], 1
 
 	mov al, [.char]
 
@@ -510,31 +506,38 @@ put_char_cursor:
 	jge .x_overflow
 
 .print:
-	movzx eax, [x_cur]
-	mov edx, 0
-	mov ebx, 8
-	mul ebx
-	mov [.x], eax
+	;movzx eax, [x_cur]
+	;mov edx, 0
+	;mov ebx, 8
+	;mul ebx
+	;mov [.x], eax
 
-	movzx eax, [y_cur]
-	mov edx, 0
-	mov ebx, 16
-	mul ebx
-	mov [.y], eax
+	;movzx eax, [y_cur]
+	;mov edx, 0
+	;mov ebx, 16
+	;mul ebx
+	;mov [.y], eax
 
-	mov ebx, [.x]
-	mov ecx, [.y]
+	movzx ebx, [x_cur]
+	shl ebx, 3
+	movzx ecx, [y_cur]
+	shl ecx, 4
+
+	;mov ebx, [.x]
+	;mov ecx, [.y]
 	mov al, [.char]
 	call put_char
 
-	add byte[x_cur], 1
+	;add byte[x_cur], 1
+	inc byte[x_cur]
 
 	popa
 	ret
 
 .x_overflow:
 	mov byte[x_cur], 0
-	add byte[y_cur], 1
+	;add byte[y_cur], 1
+	inc byte[y_cur]
 
 	mov al, [y_cur]
 	cmp al, byte[y_cur_max]
@@ -553,7 +556,8 @@ put_char_cursor:
 
 .newline:
 	mov byte[x_cur], 0
-	add byte[y_cur], 1
+	;add byte[y_cur], 1
+	inc byte[y_cur]
 
 	mov al, [y_cur]
 	cmp al, byte[y_cur_max]
@@ -572,7 +576,8 @@ put_char_cursor:
 	cmp byte[x_cur], 0
 	je .no
 
-	sub byte[x_cur], 1
+	;sub byte[x_cur], 1
+	dec byte[x_cur]
 	popa
 	ret
 
