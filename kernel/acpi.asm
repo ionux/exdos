@@ -471,6 +471,7 @@ acpi_slp_en			dw 0
 
 acpi_shutdown:
 	mov esi, .debug
+
 	call kdebug_print
 
 	cmp word[acpi_slp_typa], 0xFFFF
@@ -487,6 +488,9 @@ acpi_shutdown:
 	or ah, cl
 	out dx, ax
 
+	out 0x80, eax
+	in eax, 0x80
+
 	; If the system is not powered off yet, it may be one of two possibilities:
 	; - ACPI shutdown somehow failed.
 	; - We need to do PM1b_control_block too.
@@ -496,12 +500,20 @@ acpi_shutdown:
 	mov edx, [acpi_fadt.pm1b_control_block]
 	cmp edx, 0
 	je .fail
+
+	out 0x80, eax			; wait for I/O operation to complete...
+	in eax, 0x80
+
+	mov edx, [acpi_fadt.pm1b_control_block]
 	in ax, dx
 	and ax, 0x203
 	or ah, ch
 	out dx, ax
 
 .fail:
+	out 0x80, eax			; wait for I/O to complete
+	in eax, 0x80
+
 	mov esi, .fail_msg
 	call kdebug_print
 

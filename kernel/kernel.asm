@@ -26,9 +26,9 @@ jmp os_api
 
 use16
 
-define TODAY "Thursday, 20th August, 2015"
+define TODAY "Monday, 24th August, 2015"
 
-_kernel_version			db "ExDOS 0.1 pre-alpha built ", TODAY, 0
+_kernel_version			db "ExDOS v0.1.0 pre-alpha built ", TODAY, 0
 _api_version			dd 1
 _copyright			db "(C) by Omar Mohammad",0
 _crlf				db 13,10,0
@@ -310,6 +310,7 @@ use32
 	call clear_screen
 
 	call init_hdd				; initialize hard disk
+	call detect_exdfs			; verify the partition is formatted with ExDFS
 
 	mov eax, 0x2000000
 	mov ebx, 0x2000000

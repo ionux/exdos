@@ -184,7 +184,7 @@ mem_info:
 
 kernel_info:
 	mov esi, _kernel_version
-	mov eax, [_api_version]
+	mov eax, 1
 	mov ebx, cpu_brand
 	movzx ecx, [cpu_speed]
 

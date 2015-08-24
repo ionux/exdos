@@ -116,6 +116,20 @@ cmd:
 	je dir
 
 	mov esi, input_buffer
+	mov edi, sysinfo_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je sysinfo
+
+	mov esi, input_buffer
+	mov edi, diskstat_command
+	os_api compare_strings
+
+	cmp eax, 0
+	je diskstat
+
+	mov esi, input_buffer
 	os_api execute_program
 
 	cmp ebx, 0
@@ -329,8 +343,149 @@ dir:
 
 .tmp			dd 0
 
+sysinfo:
+	os_api get_kernel_info
+
+	mov [.kv], esi
+	mov [.av], eax
+	mov [.cpu_brand], ebx
+	mov [.cpu_mhz], ecx
+
+	mov esi, .kernel_version
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov esi, [.kv]
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+	mov esi, crlf
+	os_api print_string_cursor
+
+	mov esi, .api_version
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov ebx, [.av]
+	os_api int_to_string
+	;mov esi, edi
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+	mov esi, crlf
+	os_api print_string_cursor
+
+	mov esi, .brand
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov esi, [.cpu_brand]
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+	mov esi, crlf
+	os_api print_string_cursor
+
+	mov esi, .speed
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov ebx, [.cpu_mhz]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov esi, .speed2
+	mov ecx, 0
+	mov edx, 0x7F007F
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+
+	jmp cmd
+
+.kv			dd 0
+.av			dd 0
+.cpu_brand		dd 0
+.cpu_mhz		dd 0
+.kernel_version		db "Kernel version: ",0
+.api_version		db "API version: ",0
+.brand			db "CPU brand: ",0
+.speed			db "CPU speed: ",0
+.speed2			db " MHz",0
+
+diskstat:
+	os_api hdd_get_info
+	mov [.size], eax
+	mov [.read], ebx
+	mov [.write], ecx
+
+	mov esi, .size_str
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov ebx, [.size]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov esi, .mb
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov esi, .read_str
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov ebx, [.read]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov esi, crlf
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov esi, .write_str
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov ebx, [.write]
+	os_api int_to_string
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	mov esi, crlf
+	mov ecx, 0
+	mov edx, 0x007FFF
+	os_api print_string_cursor
+
+	jmp cmd
+
+.size			dd 0
+.read			dd 0
+.write			dd 0
+.size_str		db "Disk size: ",0
+.read_str		db "Read sectors since boot: ",0
+.write_str		db "Written sectors since boot: ",0
+.mb			db " MB",10,0
+
 crlf			db 13,10,0
-title_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
+title_msg		db "ExDOS v0.1.0 -- http://github.com/omarrx024/exdos",13,10
 			db "(C) 2015 by Omar Mohammad.",13,10
 			db "All rights reserved.",13,10,0
 prompt			db ">",0
@@ -348,15 +503,19 @@ meminfo_command		db "meminfo",0
 time_command		db "time",0
 date_command		db "date",0
 dir_command		db "dir",0
-help_msg		db "ExDOS -- version 0.1 pre-alpha",13,10
+sysinfo_command		db "sysinfo",0
+diskstat_command	db "diskstat",0
+help_msg		db "ExDOS v0.1.0 -- http://github.com/omarrx024/exdos",13,10
 			db "Command list:",13,10,13,10
 			db " clear        -- Clears the screen",13,10
 			db " date         -- Shows the date",13,10
 			db " dir          -- Shows list of files on disk",13,10
+			db " diskstat     -- Shows disk I/O statistics",13,10
 			db " exit         -- Shuts down the system",13,10
 			db " kdebug       -- Shows kernel messages",13,10
 			db " meminfo      -- Shows memory usage",13,10
 			db " reboot       -- Reboots the PC",13,10
+			db " sysinfo      -- Shows system information",13,10
 			db " time         -- Shows the time",0
 
 input_buffer:

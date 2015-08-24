@@ -11,6 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Functions:
+; detect_exdfs
 ; internal_filename
 ; external_filename
 ; load_root_directory
@@ -21,6 +22,77 @@
 ; get_file_size
 
 use32
+
+; detect_exdfs:
+; Detects ExDFS partition
+
+detect_exdfs:
+	mov eax, [boot_partition.lba]		; read the boot sector
+	mov ebx, 1
+	mov edi, disk_buffer
+	call hdd_read_sectors
+
+	mov esi, disk_buffer+0xC
+	cmp dword[esi], 0x7A658502		; verify the ExDFS magic number
+	jne .bad
+
+	mov esi, disk_buffer+0x22		; verify the ExDFS ID
+	mov edi, .exdfs_id
+	mov ecx, 8
+	rep cmpsb
+	jne .bad
+
+	; If we make it here, we have a valid ExDFS partition
+	mov esi, disk_buffer+0x1A		; volume label
+	mov edi, .volume_label
+	mov ecx, 8
+	rep movsb
+
+	mov esi, disk_buffer+0x16		; volume serial number
+	mov edi, .serial
+	movsd
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [boot_partition.lba]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [boot_partition.size]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	mov eax, [.serial]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	ret
+
+.bad:
+	mov esi, .fail_msg
+	jmp draw_boot_error
+
+.fail_msg			db "Failed to access the boot drive: corrupt ExDFS filesystem.",0
+.debug_msg1			db "fs: ExDFS partition at LBA ",0
+.debug_msg2			db ", size ",0
+.debug_msg3			db " sectors.",10,0
+.debug_msg4			db "fs: volume serial number is ",0
+.exdfs_id			db "EXDFS   "
+.volume_label:			times 9 db 0
+.serial				dd 0
 
 ; internal_filename:
 ; Converts external file name to internal file name

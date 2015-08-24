@@ -515,37 +515,17 @@ remap_pic:
 	out 0xA1, al
 
 	; remap the real mode IVT as well
-	mov dword[.irq], 8
+	mov esi, 8*4
+	mov edi, 0x20*4
+	mov ecx, 8*4
+	rep movsb
 
-.loop:
-	mov eax, [.irq]
-	mov ebx, 4
-	mul ebx
-	
-	mov esi, eax
-	mov edx, dword[esi]
-	push edx
-	
-	mov eax, [.irq]
-	add eax, 24
-	mov ebx, 4
-	mul ebx
-	
-	pop edx
-	
-	mov edi, eax
-	mov dword[edi], edx
-	
-	cmp dword[.irq], 23
-	je .done
-	
-	add dword[.irq], 1
-	jmp .loop
-	
-.done:
+	mov esi, 0x70*4
+	mov edi, 0x28*4
+	mov ecx, 8*4
+	rep movsb
+
 	ret
-	
-.irq				dd 0
 
 ; init_pit:
 ; Initializes the PIT to 100 Hz

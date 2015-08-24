@@ -79,7 +79,6 @@ use16
 
 use32
 
-	cli
 	mov eax, [disk_size_sectors]
 	mov ebx, 2
 	mov edx, 0
