@@ -12,7 +12,9 @@
 
 use32
 
-os_api_max_function			= 47
+os_api_max_function			= 49
+
+is_syscall_executing			db 0
 
 ; os_api:
 ; Kernel API Entry Point
@@ -24,6 +26,8 @@ os_api:
 	pusha
 	call enter_ring0		; ensure the API runs in ring 0
 	popa
+
+	mov byte[is_syscall_executing], 1
 
 	sti
 
@@ -44,12 +48,15 @@ os_api:
 	mov eax, [.tmp]
 	call eax
 
+	mov byte[is_syscall_executing], 0
+
 	pusha
 	call enter_ring3		; ensure we continue execution in user mode
 	popa
 	ret
 
 .bad:
+	mov byte[is_syscall_executing], 0
 	popa
 	call enter_ring3
 	mov eax, 0xBADFBADF
@@ -98,36 +105,37 @@ os_api_table:
 	dd .hex_dword_to_string			; 27
 	dd compare_strings			; 28
 	dd replace_byte_in_string		; 29
+	dd find_byte_in_string			; 30
 
 	; Power-based routines
-	dd reboot				; 30
-	dd shutdown				; 31
+	dd reboot				; 31
+	dd shutdown				; 32
 
 	; Time-based routines
-	dd get_time_24				; 32
-	dd get_time_12				; 33
-	dd get_time_string_24			; 34
-	dd get_time_string_12			; 35
-	dd get_date				; 36
-	dd get_date_string_am			; 37
-	dd get_date_string_me			; 38
-	dd get_long_date_string			; 39
+	dd get_time_24				; 33
+	dd get_time_12				; 34
+	dd get_time_string_24			; 35
+	dd get_time_string_12			; 36
+	dd get_date				; 37
+	dd get_date_string_am			; 38
+	dd get_date_string_me			; 39
+	dd get_long_date_string			; 40
 
 	; Mouse routines
-	dd get_mouse_status			; 40
-	dd show_mouse_cursor			; 41
-	dd hide_mouse_cursor			; 42
-	dd set_mouse_cursor			; 43
+	dd get_mouse_status			; 41
+	dd show_mouse_cursor			; 42
+	dd hide_mouse_cursor			; 43
+	dd set_mouse_cursor			; 44
 
 	; Disk I/O routines
-	dd hdd_get_info				; 44
-	dd get_filenames_string			; 45
-	dd get_file_size			; 46
-	dd load_file				; 47
-	;dd write_file				; 48
-	;dd delete_file				; 49
-	;dd copy_file				; 50
-	;dd rename_file				; 51
+	dd hdd_get_info				; 45
+	dd get_filenames_string			; 46
+	dd get_file_size			; 47
+	dd load_file				; 48
+	dd write_file				; 49
+	;dd delete_file				; 50
+	;dd copy_file				; 51
+	;dd rename_file				; 52
 
 .int_to_string:
 	mov eax, ebx

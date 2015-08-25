@@ -324,6 +324,9 @@ date:
 
 dir:
 	os_api get_filenames_string
+	cmp eax, 0
+	jne .error
+
 	mov [.tmp], esi
 
 	mov esi, [.tmp]
@@ -341,6 +344,18 @@ dir:
 
 	jmp cmd
 
+.error:
+	mov esi, .error_msg
+	mov ecx, 0
+	mov edx, 0x9F2020
+	os_api print_string_cursor
+
+	mov esi, crlf
+	os_api print_string_cursor
+
+	jmp cmd
+
+.error_msg		db "Disk I/O error.",0
 .tmp			dd 0
 
 sysinfo:
@@ -475,6 +490,7 @@ diskstat:
 	os_api print_string_cursor
 
 	jmp cmd
+
 
 .size			dd 0
 .read			dd 0

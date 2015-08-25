@@ -16,6 +16,7 @@
 ; srand
 ; is_number_multiple
 ; round
+; round_forward
 
 use32
 
@@ -206,3 +207,40 @@ round:
 .number			dd 0
 .nearest		dd 0
 .half_nearest		dd 0
+
+; round_forward:
+; Rounds a number to another number by incrementing only
+; In\	EAX = Number to be rounded
+; In\	EBX = Number to round to
+; Out\	EFLAGS = Carry clear on success
+; Out\	EAX = Number
+
+round_forward:
+	cmp ebx, 0
+	je .error
+
+	mov [.number1], eax
+	mov [.number2], ebx
+
+.loop:
+	mov eax, [.number1]
+	mov ebx, [.number2]
+	call is_number_multiple
+	jnc .done
+
+	add dword[.number1], 1
+	jmp .loop
+
+.done:
+	mov eax, [.number1]
+	clc
+	ret
+
+.error:
+	stc
+	ret
+
+.number1		dd 0
+.number2		dd 0
+
+

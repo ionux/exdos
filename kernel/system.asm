@@ -562,14 +562,11 @@ remap_pic:
 
 iowait:
 	pusha
-	mov ecx, 0xFFFF
 
-.loop:
 	nop
 	nop
 	nop
 	nop
-	loop .loop
 
 	popa
 	ret

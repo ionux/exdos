@@ -75,6 +75,22 @@ init_serial:
 	mov byte[is_there_serial], 0
 	ret
 
+; wait_serial_send:
+; Waits for the serial port to receive data
+
+wait_serial_send:
+	pusha
+
+.wait:
+	mov dx, [serial_ioport]
+	add dx, 5
+	in al, dx
+	test al, 0x20
+	jz .wait
+
+	popa
+	ret
+
 ; send_byte_via_serial:
 ; Sends a byte via serial port
 ; In\	AL = Byte to send
@@ -83,22 +99,21 @@ init_serial:
 send_byte_via_serial:
 	pusha
 
+	cmp al, 10
+	je .newline
+
 	cmp byte[is_there_serial], 0
 	je .no_serial
 
 .wait:
-	mov dx, [serial_ioport]
-	add dx, 5
-	in al, dx
-
-	test al, 0x20
-	jz .wait
-
-.send:
+	call wait_serial_send
 	popa
 	pusha
+
 	mov dx, [serial_ioport]
 	out dx, al
+
+	call wait_serial_send
 
 	popa
 	mov eax, 0
@@ -107,6 +122,25 @@ send_byte_via_serial:
 .no_serial:
 	popa
 	mov eax, 1
+	ret
+
+.newline:
+	call wait_serial_send
+
+	mov dx, [serial_ioport]
+	mov al, 13
+	out dx, al
+
+	call wait_serial_send
+
+	mov dx, [serial_ioport]
+	mov al, 10
+	out dx, al
+
+	call wait_serial_send
+
+	popa
+	mov eax, 0
 	ret
 
 ; send_string_via_serial:

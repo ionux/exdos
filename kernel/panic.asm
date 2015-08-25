@@ -47,6 +47,9 @@ draw_panic_screen:
 	mov cl, 24
 	call set_vesa_mode
 
+	cmp eax, 0
+	jne reboot
+
 .vesa_done:
 	mov ebx, 0x7F
 	call clear_screen

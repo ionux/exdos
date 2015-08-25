@@ -20,6 +20,7 @@
 ; does_file_exist
 ; get_filenames_string
 ; get_file_size
+; write_file
 
 use32
 
@@ -264,7 +265,7 @@ write_root_directory:
 ; Out\	ECX = File size in bytes
 
 load_file:
-	mov [.location], edi
+	mov [.location], edi 
 
 	call internal_filename
 	call load_root_directory
@@ -349,6 +350,7 @@ does_file_exist:
 	jmp .loop
 
 .yes:
+	popa
 	mov eax, 1
 	ret
 
@@ -468,5 +470,261 @@ get_file_size:
 
 .size				dd 0
 
+; write_file:
+; Writes a file to the disk
+; In\	ESI = Filename
+; In\	EDI = Buffer to write to file
+; In\	ECX = Bytes to write to file
+; Out\	EAX = Status
+;	0 - success, 1 - no more space, 2 - disk I/O error
+; Note: Creates the file if it doesn't exist, overwrites without prompt if it exists.
+
+write_file:
+	mov [.filename], esi
+	mov [.buffer], edi
+	mov [.size], ecx
+	call internal_filename
+
+	mov eax, [boot_partition.lba]
+	add eax, dword[boot_partition.size]
+	mov [.last_lba], eax			; marks the end of the partition
+
+	mov esi, [.filename]
+	call does_file_exist
+
+	cmp eax, 0				; if the file doesn't exist --
+	je .create_file				; -- we need to create the file
+
+	jmp .already_exists
+
+.create_file:
+	call load_root_directory
+	jc .disk_error
+
+	; we need to find an unused root entry
+	; if the first byte is 0xAF, the entry has been used before but the file has been deleted, so we can use it.
+	; if the first byte is 0x00, the entry has never been used and all entries after it are also unused.
+	mov esi, disk_buffer+32			; the first entry is reserved
+	mov ecx, 1
+
+.find_empty_root_entry:
+	cmp byte[esi], 0xAF			; deleted
+	je .found_empty_entry
+
+	cmp byte[esi], 0x00			; unused
+	je .found_empty_entry
+
+	add ecx, 1
+	cmp ecx, 512
+	je .no_space
+
+	add esi, 32
+	jmp .find_empty_root_entry
+
+.found_empty_entry:
+	push esi
+	mov esi, [.filename]
+	call internal_filename
+
+	cmp eax, 0				; if it is a bad file name --
+	jne .disk_error				; -- simulate a disk error
+
+	; Build the root entry:
+	; do the filename
+	pop edi
+	mov esi, new_filename
+	mov ecx, 11
+	rep movsb
+
+	; the filename is always ASCIIZ, so put a zero after the file name
+	mov al, 0
+	stosb
+
+	mov [.tmp_root], edi
+
+	; now is the LBA sector, so we need to find an empty sector
+	mov eax, [boot_partition.lba]
+	add eax, 2048
+	mov [.lba], eax
+
+.find_empty_sector_stub:
+	mov eax, [.lba]
+
+.find_empty_sector:
+	mov ebx, 1				; read one sector
+	mov edi, 0x40000
+	call hdd_read_sectors
+	jc .disk_error
+
+	mov esi, 0x40000
+	mov edi, .zero
+	mov ecx, 511
+
+.check_is_empty:
+	cmpsb
+	jne .next_sector
+
+	mov edi, .zero
+	loop .check_is_empty
+
+	; If we make it here, we've found an empty sector
+	jmp .found_empty_sector
+
+.next_sector:
+	add dword[.lba], 1
+	mov eax, [.lba]
+	cmp eax, dword[.last_lba]
+	jge .no_space
+
+	jmp .find_empty_sector_stub
+
+.found_empty_sector:
+	; Now we can continue building the root directory entry structure
+	mov edi, [.tmp_root]
+	mov eax, [.lba]
+	stosd
+	mov [.tmp_root], edi
+
+	; next is the size in sectors
+	mov eax, [.size]
+	mov ebx, 512
+	call round_forward			; make the number a multiple of 512
+
+	mov ebx, 512
+	mov edx, 0
+	div ebx					; size in sectors :)
+	mov [.size_sectors], eax
+	mov edi, [.tmp_root]
+	stosd
+
+	; next is the size in bytes
+	mov eax, [.size]
+	stosd
+	mov [.tmp_root], edi
+
+	; and then is the time in 24-hour format...
+	call get_time_24
+	push eax
+	mov edi, [.tmp_root]
+	mov al, ah				; hour first
+	stosb
+	pop eax
+	stosb					; minute next
+
+	mov [.tmp_root], edi
+
+	; and then is the date...
+	call get_date
+	mov edi, [.tmp_root]
+	stosb					; day
+	mov al, ah
+	stosb					; month
+	mov ax, bx
+	stosw					; year
+
+	mov ax, 0				; last word is reserved...
+	stosw
+
+	; Now, we can write the root directory to the disk
+	call write_root_directory
+	jc .disk_error
+
+	jmp .save
+
+.already_exists:
+	mov esi, [.filename]
+	call internal_filename
+	call load_root_directory
+	jc .disk_error
+
+	mov esi, disk_buffer+32			; the first entry is reserved...
+	mov edi, new_filename
+	mov ecx, 1
+
+.find_file:
+	pusha
+	mov ecx, 11
+	rep cmpsb
+	je .found_file
+	popa
+
+	add esi, 32
+	jmp .find_file
+
+.found_file:
+	add esi, 1
+	mov eax, dword[esi]
+	mov [.lba], eax
+
+	mov [.tmp_root], esi
+	popa
+
+	mov eax, [.size]
+	mov ebx, 512
+	call round_forward
+
+	mov ebx, 512
+	mov edx, 0
+	div ebx
+	mov [.size_sectors], eax
+
+	mov esi, [.tmp_root]
+	mov [esi+4], eax			; size of file in sectors
+
+	mov eax, [.size]
+	mov [esi+8], eax			; size of file in bytes
+
+	call write_root_directory		; write the changes to the disk
+	jc .disk_error
+
+.save:
+	mov eax, [.buffer]
+	add eax, dword[.size]
+	mov ebx, 512
+	call round_forward
+
+	mov edi, [.buffer]
+	add edi, dword[.size]
+
+	; clear the rest of the file with zeroes so that users don't see garbage data that may have been in memory
+	mov ecx, eax
+	mov eax, 0
+
+.clear_loop:
+	cmp edi, ecx
+	jge .write
+	stosb
+	jmp .clear_loop
+
+.write:
+	; Now let's write the file :)
+	mov eax, [.lba]
+	mov ebx, [.size_sectors]
+	mov esi, [.buffer]
+	call hdd_write_sectors
+	jc .disk_error
+
+	; And we're finished! :)
+
+.done:
+	mov eax, 0
+	ret
+
+.no_space:
+	mov eax, 1
+	ret
+
+.disk_error:
+	mov eax, 2
+	ret
+
+.filename			dd 0
+.last_lba			dd 0
+.size				dd 0
+.buffer				dd 0
+.tmp_root			dd 0
+.zero				db 0
+.lba				dd 0
+.size_sectors			dd 0
 
 
