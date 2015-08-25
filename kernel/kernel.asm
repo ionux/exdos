@@ -444,19 +444,6 @@ stack_area:			rb stack_size			; 4 KB of stack space
 align 32
 
 memory_map:
-
-page_directory			= 0x50000
-
-page_table			= 0x100000			; page table takes up 4 MB of RAM
-								; it can't be located in low memory
-
-end_of_page_table		= 0x500000
-
-pmm_table			= 0x600000
-end_of_pmm_table		= 0x700000
-
-align 32
-
 disk_buffer:							; reserve whatever is left in memory as a disk buffer
 
 

@@ -18,6 +18,13 @@
 
 use32
 
+page_directory			= 0x50000
+page_table			= 0x100000			; page table takes up 4 MB of RAM
+								; it can't be located in low memory
+end_of_page_table		= 0x500000
+pmm_table			= 0x600000
+end_of_pmm_table		= 0x700000
+
 ; vmm_init:
 ; Initializes the paging system and the virtual memory manager
 
@@ -64,7 +71,7 @@ vmm_init:
 
 	mov eax, stack_area			; map stack area to itself
 	mov ebx, stack_area
-	mov ecx, 2				; 8 KB
+	mov ecx, 1				; 4 KB
 	mov edx, 7				; user, present, read/write
 	call vmm_map_memory
 
