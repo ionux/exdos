@@ -49,32 +49,34 @@ hex_word_to_string		= 26
 hex_dword_to_string		= 27
 compare_strings			= 28
 replace_byte_in_string		= 29
+find_byte_in_string		= 30
 
 ; Power-based routines
-reboot				= 30
-shutdown			= 31
+reboot				= 31
+shutdown			= 32
 
 ; Time-based routines
-get_time_24			= 32
-get_time_12			= 33
-get_time_string_24		= 34
-get_time_string_12		= 35
-get_date			= 36
-get_date_string_am		= 37
-get_date_string_me		= 38
-get_long_date_string		= 39
+get_time_24			= 33
+get_time_12			= 34
+get_time_string_24		= 35
+get_time_string_12		= 36
+get_date			= 37
+get_date_string_am		= 38
+get_date_string_me		= 39
+get_long_date_string		= 40
 
 ; Mouse routines
-get_mouse_status		= 40
-show_mouse_cursor		= 41
-hide_mouse_cursor		= 42
-set_mouse_cursor		= 43
+get_mouse_status		= 41
+show_mouse_cursor		= 42
+hide_mouse_cursor		= 43
+set_mouse_cursor		= 44
 
 ; Disk I/O routines
-hdd_get_info			= 44
-get_filenames_string		= 45
-get_file_size			= 46
-load_file			= 47
+hdd_get_info			= 45
+get_filenames_string		= 46
+get_file_size			= 47
+load_file			= 48
+write_file			= 49
 
 macro os_api function_number {
 	mov eax, function_number
