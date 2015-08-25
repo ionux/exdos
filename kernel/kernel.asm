@@ -445,7 +445,7 @@ align 32
 
 memory_map:
 
-page_directory			= 0x70000
+page_directory			= 0x50000
 
 page_table			= 0x100000			; page table takes up 4 MB of RAM
 								; it can't be located in low memory
