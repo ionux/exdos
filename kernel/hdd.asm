@@ -155,6 +155,10 @@ use16
 	jg .big
 	mov word[dap.sectors], bx
 
+	mov byte[dap.size], 0x10
+	mov byte[dap.reserved], 0
+	mov dword[dap.lba+4], 0
+
 	mov ah, 0x42
 	mov dl, [bootdisk]
 	mov si, dap
@@ -168,6 +172,10 @@ use16
 
 .big:
 	mov word[dap.sectors], 127
+
+	mov byte[dap.size], 0x10
+	mov byte[dap.reserved], 0
+	mov dword[dap.lba+4], 0
 
 	mov ah, 0x42
 	mov dl, [bootdisk]
@@ -275,6 +283,10 @@ use16
 	int 0x13
 	jc .error
 
+	mov byte[dap.size], 0x10
+	mov byte[dap.reserved], 0
+	mov dword[dap.lba+4], 0
+
 	mov ah, 0x43			; extended write sectors
 	mov dl, [bootdisk]
 	mov si, dap
@@ -312,6 +324,10 @@ use16
 	mov dl, [bootdisk]
 	int 0x13
 	jc .error
+
+	mov byte[dap.size], 0x10
+	mov byte[dap.reserved], 0
+	mov dword[dap.lba+4], 0
 
 	mov ah, 0x43
 	mov dl, [bootdisk]

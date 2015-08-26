@@ -24,8 +24,14 @@ serial_ioport				dw 0
 ; Initializes the serial port
 
 init_serial:
+	sti
+
 	cmp byte[serial_enabled], 0
 	je .no_serial
+
+	mov al, 32+4
+	mov ebp, serial_irq
+	call install_isr
 
 	mov edi, 0x400
 	cmp word[edi], 0
@@ -36,38 +42,39 @@ init_serial:
 
 	mov byte[is_there_serial], 1
 
-	;mov al, 0
-	;mov dx, [serial_ioport]
-	;out dx, al
+	mov al, 1001b			; disable interrupts
+	mov dx, [serial_ioport]
+	add dx, 1
+	out dx, al
 
-	mov al, 0x80
+	mov al, 0x80			; enable DLAB
 	mov dx, [serial_ioport]
 	add dx, 3
 	out dx, al
 
-	;mov al, 2
-	;mov dx, [serial_ioport]
-	;out dx, al
+	mov al, 2
+	mov dx, [serial_ioport]
+	out dx, al
 
 	mov al, 0
 	mov dx, [serial_ioport]
 	add dx, 1
 	out dx, al
 
-	mov al, 3
+	mov al, 3			; disable DLAB
 	mov dx, [serial_ioport]
 	add dx, 3
 	out dx, al
 
-	mov al, 0xC7
+	mov al, 0xC7			; enable FIFO
 	mov dx, [serial_ioport]
 	add dx, 2
 	out dx, al
 
-	mov al, 0x0B
+	mov al, 0xB
 	mov dx, [serial_ioport]
 	add dx, 4
-	out dx, al
+	;out dx, al
 
 	ret
 
@@ -166,5 +173,14 @@ send_string_via_serial:
 .no_serial:
 	mov eax, 1
 	ret
+
+; serial_irq:
+; Serial port IRQ 4 handler
+
+serial_irq:
+	cli
+	hlt
+
+
 
 

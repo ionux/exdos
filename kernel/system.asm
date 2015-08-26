@@ -563,11 +563,25 @@ remap_pic:
 iowait:
 	pusha
 
+	jmp 8:.1
+
+.1:
 	nop
 	nop
 	nop
 	nop
 
+	jmp 8:.2
+
+.2:
+	nop
+	nop
+	nop
+	nop
+
+	jmp 8:.3
+
+.3:
 	popa
 	ret
 
@@ -575,11 +589,16 @@ iowait:
 ; Initializes the PIT to 100 Hz
 
 init_pit:
-	mov al, 0x36
-	out 0x43, al
+	;mov al, 0x36
+	;out 0x43, al
+
+	call iowait
 
 	mov eax, 11931		; 100 Hz
 	out 0x40, al
+
+	call iowait
+
 	mov al, ah
 	out 0x40, al
 

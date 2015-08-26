@@ -106,6 +106,8 @@ init_acpi:
 	jne .checksum_error
 
 .find_rsdt:
+	mov byte[is_there_acpi], 1
+
 	; Now, we need to find the RSDT
 	mov esi, [rsd_ptr]
 	add esi, 16
@@ -139,10 +141,12 @@ init_acpi:
 	ret
 
 .checksum_error:
+	mov byte[is_there_acpi], 0
 	mov esi, .debug_msg6
 	call kdebug_print
 
 .no_acpi:
+	mov byte[is_there_acpi], 0
 	mov esi, .debug_msg7
 	call kdebug_print
 
@@ -166,6 +170,9 @@ init_acpi:
 ; Out\	ESI = Pointer to ACPI table
 
 acpi_find_table:
+	cmp byte[is_there_acpi], 1
+	jne .not_found
+
 	mov [.signature], esi
 	mov esi, [rsdt]
 	add esi, 4
@@ -235,6 +242,8 @@ acpi_find_table:
 ; Initialize ACPI power management
 
 init_acpi_power:
+	sti
+
 	cmp byte[is_there_acpi], 1
 	jne .no_acpi
 
@@ -313,10 +322,10 @@ init_acpi_power:
 	mov ebp, acpi_irq				; install the IRQ handler
 	call install_isr
 
-	cmp byte[acpi_fadt.acpi_enable], 0		; is ACPI enabled?
+	cmp dword[acpi_fadt.smi_command_port], 0
 	je .already_enabled
 
-	cmp dword[acpi_fadt.smi_command_port], 0
+	cmp byte[acpi_fadt.acpi_enable], 0		; is ACPI enabled?
 	je .already_enabled
 
 	mov esi, .debug_msg3
@@ -471,7 +480,6 @@ acpi_slp_en			dw 0
 
 acpi_shutdown:
 	mov esi, .debug
-
 	call kdebug_print
 
 	cmp word[acpi_slp_typa], 0xFFFF
@@ -488,8 +496,7 @@ acpi_shutdown:
 	or ah, cl
 	out dx, ax
 
-	out 0x80, eax
-	in eax, 0x80
+	call iowait
 
 	; If the system is not powered off yet, it may be one of two possibilities:
 	; - ACPI shutdown somehow failed.
@@ -501,19 +508,15 @@ acpi_shutdown:
 	cmp edx, 0
 	je .fail
 
-	out 0x80, eax			; wait for I/O operation to complete...
-	in eax, 0x80
-
 	mov edx, [acpi_fadt.pm1b_control_block]
 	in ax, dx
 	and ax, 0x203
 	or ah, ch
 	out dx, ax
 
-.fail:
-	out 0x80, eax			; wait for I/O to complete
-	in eax, 0x80
+	call iowait
 
+.fail:
 	mov esi, .fail_msg
 	call kdebug_print
 

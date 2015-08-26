@@ -236,6 +236,10 @@ check_serial_loop:
 serial_enabled		db 0
 
 enter_pmode:
+	mov eax, 0xEC00
+	mov ebx, 1
+	int 0x15				; notify the BIOS we're going to run in protected mode
+
 	cli
 	lgdt [gdtr]
 	lidt [idtr]
