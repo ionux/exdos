@@ -87,6 +87,7 @@ screen:
 	.virtual_buffer		dd 0xE0000000
 	.physical_buffer	dd 0
 	.is_graphics_mode	db 0
+	.size			dd 0
 
 vga_memory_64kb			dw 0			; in 64 KB blocks
 vga_memory			dd 0
@@ -330,6 +331,12 @@ use32
 
 	movzx eax, byte[.bpp]
 	mov [screen.bpp], eax
+
+	movzx eax, word[.height]
+	inc eax
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+	mov [screen.size], eax
 
 	mov [screen.is_graphics_mode], 1
 

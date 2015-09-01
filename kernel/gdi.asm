@@ -82,16 +82,10 @@ get_pixel_offset:
 redraw_screen:
 	pusha
 
-	mov eax, [screen.height]
-	add eax, 1
-	mov ebx, [screen.bytes_per_line]
-	mul ebx
-	;add eax, dword[screen.bytes_per_line]
-	shr eax, 4
-
 	mov esi, [screen.framebuffer]
 	mov edi, [screen.virtual_buffer]
-	mov ecx, eax
+	mov ecx, [screen.size]
+	shr ecx, 4
 
 .loop:
 	movdqa xmm0, [esi]
@@ -177,6 +171,7 @@ redraw_text_cursor:
 
 show_text_cursor:
 	mov byte[text_cursor_visible], 1
+	call redraw_screen
 	ret
 
 ; hide_text_cursor:

@@ -254,17 +254,17 @@ kbd_irq:
 	mov byte[last_character], 0
 
 .done:
-	mov al, [last_character]
-	cmp al, 0
-	je .quit
+	;mov al, [last_character]
+	;cmp al, 0
+	;je .quit
 
-	cmp dword[kbd_buffer_used_space], 0
-	je .quit
+	;cmp dword[kbd_buffer_used_space], 0
+	;je .quit
 
-	mov edi, [kbd_buffer_free_space]
-	stosb
-	mov [kbd_buffer_free_space], edi
-	add dword[kbd_buffer_used_space], 1
+	;mov edi, [kbd_buffer_free_space]
+	;stosb
+	;mov [kbd_buffer_free_space], edi
+	;add dword[kbd_buffer_used_space], 1
 
 .quit:
 	mov al, 0x20
@@ -411,21 +411,21 @@ get_string_echo:
 	add edi, 255
 	mov [.end_string], edi
 
-	mov esi, kbd_buffer
-	mov ecx, [kbd_buffer_used_space]
-	mov edi, [.string]
-	rep movsb
+	;mov esi, kbd_buffer
+	;mov ecx, [kbd_buffer_used_space]
+	;mov edi, [.string]
+	;rep movsb
 
-	mov edi, kbd_buffer
-	mov ecx, 32/4
-	mov eax, 0
-	rep stosd
+	;mov edi, kbd_buffer
+	;mov ecx, 32/4
+	;mov eax, 0
+	;rep stosd
 
-	mov eax, [kbd_buffer_used_space]
-	add dword[.string], eax
+	;mov eax, [kbd_buffer_used_space]
+	;add dword[.string], eax
 
-	mov dword[kbd_buffer_used_space], 0
-	mov dword[kbd_buffer_free_space], kbd_buffer
+	;mov dword[kbd_buffer_used_space], 0
+	;mov dword[kbd_buffer_free_space], kbd_buffer
 
 	mov edi, [.string]
 	mov ecx, [text_background]

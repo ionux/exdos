@@ -95,7 +95,9 @@ vmm_init:
 	mov cr3, eax
 
 	mov eax, cr0
-	or eax, 0x80000000			; set bit 31 (Paging) bit
+	or eax, 0x80000000			; enable paging
+	or eax, 0x40000000			; enable memory caching
+	or eax, 0x20000000			; enable write-through caching
 	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
 	mov cr0, eax
 
