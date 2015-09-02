@@ -72,8 +72,8 @@ kdebug_init:
 
 	ret
 
-.done_msg			db "kernel: kernel debugger started at address ",0
-.serial				db "serial: base IO port is ",0
+.done_msg			db "kernel: kernel debugger started at address 0x",0
+.serial				db "serial: base IO port is 0x",0
 .no_serial			db "serial: no serial port present.",10,0
 
 ; kdebug_get_location:

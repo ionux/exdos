@@ -228,17 +228,17 @@ use32
 	mul ebx
 	movzx ebx, word[.lomem]
 	add eax, ebx
-	mov [total_memory_kb], eax
+	mov [usable_memory_kb], eax
 
 	mov ebx, 1024
 	mov edx, 0
 	div ebx
-	mov [total_memory_mb], eax
+	mov [usable_memory_mb], eax
 
-	mov eax, [total_memory_kb]
+	mov eax, [usable_memory_kb]
 	mov ebx, 1024
 	mul ebx
-	mov [total_memory_bytes], eax
+	mov [usable_memory_bytes], eax
 
 	mov dword[acpi_reserved_memory], 0x100000	; let's assume ACPI needs 1 MB, because E801 can't get a memory map
 
@@ -275,6 +275,11 @@ use32
 	cmp dword[edi+16], 1			; "Normal" usable RAM
 	je .found_good_ram
 
+	mov eax, dword[edi+8]
+	add dword[.tmp_size3], eax
+	mov eax, dword[edi+12]
+	add dword[.tmp_size4], eax
+
 	add edi, 24
 	cmp edi, dword[.map_size]
 	jg .done
@@ -295,28 +300,41 @@ use32
 .done:
 	; Now, convert the calculated memory size into KB and MB
 	mov eax, [.tmp_size]
-	mov [total_memory_bytes], eax
+	mov [usable_memory_bytes], eax
 
 	mov eax, [.tmp_size]
 	mov edx, [.tmp_size2]
 	mov ebx, 1024
 	div ebx
 
-	mov [total_memory_kb], eax
+	mov [usable_memory_kb], eax
 
 	mov ebx, 1024
 	mov edx, 0
 	div ebx
 
-	mov [total_memory_mb], eax
+	mov [usable_memory_mb], eax
 
 	cmp dword[.tmp_size2], 0			; if there is more than 4 GB of memory --
 	jne .maximum_size				; -- maximize the memory size, because the PMM only sees memory below 4 GB
 
+	mov eax, [.tmp_size3]
+	mov edx, [.tmp_size4]
+	mov ebx, 1024
+	div ebx
+	add eax, dword[usable_memory_kb]
+
+	mov [total_memory_kb], eax
+
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	mov [total_memory_mb], eax
+
 	jmp .e820_return
 
 .maximum_size:
-	mov dword[total_memory_bytes], 0xFFFFFFFF	; 4 GB
+	mov dword[usable_memory_bytes], 0xFFFFFFFF	; 4 GB
 
 .e820_return:
 	call go16
@@ -334,8 +352,12 @@ use16
 .tmp				dd 0
 .tmp_size			dd 0
 .tmp_size2			dd 0
+.tmp_size3			dd 0
+.tmp_size4			dd 0
 
-total_memory_bytes		dd 0
+usable_memory_bytes		dd 0
+usable_memory_kb		dd 0
+usable_memory_mb		dd 0
 total_memory_kb			dd 0
 total_memory_mb			dd 0
 
@@ -345,7 +367,7 @@ is_paging_enabled		db 0
 ; Verifies there is enough RAM onboard
 
 verify_enough_memory:
-	cmp dword[total_memory_mb], 32
+	cmp dword[usable_memory_mb], 32
 	jl .too_little
 
 	ret

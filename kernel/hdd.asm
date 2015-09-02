@@ -114,7 +114,7 @@ use32
 	jmp draw_boot_error
 
 .fail_msg			db "Failed to access the boot drive: hard disk failure.",0
-.debug_msg1			db "hdd: BIOS boot drive number is ",0
+.debug_msg1			db "hdd: BIOS boot drive number is 0x",0
 .debug_msg2			db "hdd: disk size is ",0
 .debug_msg3			db " MB.",10,0
 

@@ -69,7 +69,7 @@ get_pixel_offset:
 	add eax, ebx
 
 	mov edi, eax
-	add edi, dword[screen.framebuffer]
+	add edi, [screen.framebuffer]
 	ret
 
 .x			dd 0
@@ -80,25 +80,39 @@ get_pixel_offset:
 ; Redraws the screen
 
 redraw_screen:
-	pusha
+	;pusha
 
 	mov esi, [screen.framebuffer]
 	mov edi, [screen.virtual_buffer]
 	mov ecx, [screen.size]
-	shr ecx, 4
+	shr ecx, 7				; divide by 128
 
 .loop:
 	movdqa xmm0, [esi]
+	movdqa xmm1, [esi+16]
+	movdqa xmm2, [esi+32]
+	movdqa xmm3, [esi+48]
+	movdqa xmm4, [esi+64]
+	movdqa xmm5, [esi+80]
+	movdqa xmm6, [esi+96]
+	movdqa xmm7, [esi+112]
 	movdqa [edi], xmm0
+	movdqa [edi+16], xmm1
+	movdqa [edi+32], xmm2
+	movdqa [edi+48], xmm3
+	movdqa [edi+64], xmm4
+	movdqa [edi+80], xmm5
+	movdqa [edi+96], xmm6
+	movdqa [edi+112], xmm7
 
-	add esi, 16
-	add edi, 16
+	add esi, 128
+	add edi, 128
 	loop .loop
 
 	;mov byte[cursor_moved], 0
 	call redraw_text_cursor
 
-	popa
+	;popa
 	ret
 
 ; redraw_text_cursor:
@@ -115,7 +129,7 @@ redraw_text_cursor:
 	add ebx, 15
 	call get_pixel_offset
 
-	add eax, dword[screen.virtual_buffer]
+	add eax, [screen.virtual_buffer]
 	mov edi, eax
 
 	cmp [screen.bpp], 32
@@ -726,22 +740,12 @@ scroll_screen_graphics:
 	mov al, [y_cur_max]
 	mov byte[y_cur], al
 
-	;mov eax, 16
-	;mov ebx, [screen.bytes_per_line]
-	;mul ebx
 	mov eax, [screen.bytes_per_line]
-	;shl eax, 4			; quick multiply by 16
+	shl eax, 4			; multiply by 16
 	mov [.size_of_line], eax
 
-	mov eax, [screen.height]
-	mov ebx, [screen.bytes_per_line]
-	mul ebx
-	mov ebx, [.size_of_line]
-	sub eax, ebx
-	;mov ebx, 16
-	;mov edx, 0
-	;div ebx
-	shr eax, 4			; quick divide by 16
+	mov eax, [screen.size]
+	sub eax, dword[.size_of_line]
 	mov [.size], eax
 
 	mov eax, 0
@@ -751,39 +755,48 @@ scroll_screen_graphics:
 	mov esi, edi
 	mov edi, [screen.framebuffer]
 	mov ecx, [.size]
+	shr ecx, 7			; divide by 128
 
 .loop:
 	movdqa xmm0, [esi]
+	movdqa xmm1, [esi+16]
+	movdqa xmm2, [esi+32]
+	movdqa xmm3, [esi+48]
+	movdqa xmm4, [esi+64]
+	movdqa xmm5, [esi+80]
+	movdqa xmm6, [esi+96]
+	movdqa xmm7, [esi+112]
 	movdqa [edi], xmm0
+	movdqa [edi+16], xmm1
+	movdqa [edi+32], xmm2
+	movdqa [edi+48], xmm3
+	movdqa [edi+64], xmm4
+	movdqa [edi+80], xmm5
+	movdqa [edi+96], xmm6
+	movdqa [edi+112], xmm7
 
-	add esi, 16
-	add edi, 16
+	add esi, 128
+	add edi, 128
 	loop .loop
 
-	mov eax, [.size_of_line]
-	;mov ebx, 16
-	;mov edx, 0
-	;div ebx
-	;shr eax, 4			; quick divide by 16
-	mov [.size_of_line], eax
-
+	mov eax, 0
 	mov ebx, [screen.height]
 	sub ebx, 16
-	mov eax, 0
 	call get_pixel_offset
 
 	mov ecx, [.size_of_line]
+	shr ecx, 4
 
-.clear_bottom_line:
+.clear_last_line:
 	movdqa xmm0, dqword[.color]
 	movdqa [edi], xmm0
 
 	add edi, 16
-	loop .clear_bottom_line
+	loop .clear_last_line
 
 .done:
 	mov byte[cursor_moved], 1
-	;call redraw_screen	; not doing this saves A LOT of performance!
+	call redraw_screen		; not doing this saves A LOT of performance!
 	popa
 	ret
 
@@ -843,10 +856,10 @@ clear_screen:
 	loop .24_work
 
 .done:
-	call redraw_screen
-
 	mov byte[x_cur], 0
 	mov byte[y_cur], 0
+
+	call redraw_screen
 	popa
 	ret
 
@@ -1024,10 +1037,12 @@ fill_rect:
 ; Out\	EAX = Blended color
 
 alpha_blend_colors:
-	and eax, 0xFEFEFE
-	and ebx, 0xFEFEFE
+	;and eax, 0xFEFEFE
+	;and ebx, 0xFEFEFE
 	shr eax, 1
 	shr ebx, 1
+	and eax, 0x7F7F7F
+	and ebx, 0x7F7F7F
 	add eax, ebx
 
 	ret

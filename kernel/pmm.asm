@@ -32,15 +32,21 @@ pmm_init:
 
 	mov eax, [total_memory_mb]
 	call int_to_string
-
 	call kdebug_print_noprefix
 
 	mov esi, .debug_msg2
 	call kdebug_print_noprefix
 
+	mov eax, [usable_memory_mb]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg3
+	call kdebug_print_noprefix
+
 	mov dword[used_memory], 0
 
-	mov eax, [total_memory_kb]
+	mov eax, [usable_memory_kb]
 	mov ebx, 4
 	mov edx, 0
 	div ebx
@@ -56,7 +62,8 @@ pmm_init:
 	ret
 
 .debug_msg			db "pmm: starting with ",0
-.debug_msg2			db " MB of RAM.",10,0
+.debug_msg2			db " MB of RAM, ",0
+.debug_msg3			db " MB usable.",10,0
 
 ; pmm_allocate_memory:
 ; Allocates physical memory
@@ -96,7 +103,7 @@ pmm_allocate_memory:
 	mul ebx
 	add eax, dword[.physical]
 
-	cmp eax, [total_memory_bytes]
+	cmp eax, [usable_memory_bytes]
 	jge .too_little_memory
 
 	mov eax, [.physical]
@@ -144,7 +151,7 @@ pmm_allocate_memory:
 .physical			dd 0
 .blocks				dd 0
 .debug_msg1			db "pmm: allocating ",0
-.debug_msg2			db " blocks of memory at location ",0
+.debug_msg2			db " blocks of memory at location 0x",0
 .debug_msg3			db "pmm: too little memory.",10,0
 .debug_msg4			db "pmm: alignment error.",10,0
 
@@ -186,7 +193,7 @@ pmm_free_memory:
 	mul ebx
 	add eax, dword[.physical]
 
-	cmp eax, [total_memory_bytes]
+	cmp eax, [usable_memory_bytes]
 	jge .too_little_memory
 
 	mov eax, [.physical]
@@ -234,7 +241,7 @@ pmm_free_memory:
 .physical			dd 0
 .blocks				dd 0
 .debug_msg1			db "pmm: freeing ",0
-.debug_msg2			db " blocks of memory at location ",0
+.debug_msg2			db " blocks of memory at location 0x",0
 .debug_msg3			db "pmm: too little memory.",10,0
 .debug_msg4			db "pmm: alignment error.",10,0
 

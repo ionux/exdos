@@ -160,7 +160,7 @@ os_api_table:
 ; mem_info:
 ; Gets memory information
 ; In\	Nothing
-; Out\	EAX = Total memory in KB
+; Out\	EAX = Usable memory in KB
 ; Out\	EBX = Free memory in KB
 ; Out\	ECX = Used memory in KB
 
@@ -173,7 +173,7 @@ mem_info:
 	mov ebx, 4
 	mul ebx
 	mov [.used], eax
-	mov eax, [total_memory_kb]
+	mov eax, [usable_memory_kb]
 	mov ebx, [.free]
 	mov ecx, [.used]
 

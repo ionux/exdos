@@ -114,16 +114,6 @@ init_acpi:
 	mov eax, [esi]
 	mov [rsdt], eax
 
-	mov esi, .debug_msg5
-	call kdebug_print
-
-	mov eax, [rsdt]
-	call hex_dword_to_string
-	call kdebug_print_noprefix
-
-	mov esi, _crlf
-	call kdebug_print_noprefix
-
 	mov eax, [rsdt]
 	mov ebx, [rsdt]
 	and eax, 0xFFFFF000
@@ -155,10 +145,10 @@ init_acpi:
 .rsd_ptr			db "RSD PTR "
 .rsdt_signature			db "RSDT"
 .debug_msg1			db "acpi: initializing ACPI...",10,0
-.debug_msg2			db "acpi: RSD PTR found at ",0
+.debug_msg2			db "acpi: RSD PTR found at 0x",0
 .debug_msg3			db "acpi: ACPI revision ",0
 .debug_msg4			db ", OEM ID ",0
-.debug_msg5			db "acpi: RSDT found at ",0
+.debug_msg5			db "acpi: RSDT found at 0x",0
 .debug_msg6			db "acpi: checksum error, ignoring ACPI tables...",10,0
 .debug_msg7			db "acpi: system doesn't support ACPI...",10,0
 .oemid:				times 7 db 0
@@ -221,11 +211,52 @@ acpi_find_table:
 
 .found:
 	pop eax
+	sub esi, 4
 	mov [.tmp], esi
 	popa
 
+	mov esi, .acpi_prefix
+	call kdebug_print
+
+	mov esi, [.signature]
+	mov edi, .tmp_signature
+	mov ecx, 4
+	rep movsb
+
+	mov esi, .tmp_signature
+	call kdebug_print_noprefix
+
+	mov esi, .version
+	call kdebug_print_noprefix
+
 	mov esi, [.tmp]
-	sub esi, 4
+	mov al, byte[esi+8]
+	call hex_byte_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .oem
+	call kdebug_print_noprefix
+
+	mov esi, [.tmp]
+	add esi, 10
+	mov edi, .tmp_oem
+	mov ecx, 6
+	rep movsb
+
+	mov esi, .tmp_oem
+	call kdebug_print_noprefix
+
+	mov esi, .location
+	call kdebug_print_noprefix
+
+	mov eax, [.tmp]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	mov esi, [.tmp]
 	mov eax, 0
 	ret
 
@@ -237,6 +268,12 @@ acpi_find_table:
 .tmp					dd 0
 .rsdt_entries				dd 0
 .signature				dd 0
+.acpi_prefix				db "acpi: ",0
+.version				db " version ",0
+.oem					db " OEM ",0
+.location				db " address 0x",0
+.tmp_signature:				times 5 db 0
+.tmp_oem:				times 7 db 0
 
 ; init_acpi_power:
 ; Initialize ACPI power management
@@ -254,16 +291,6 @@ init_acpi_power:
 	jne .no_fadt
 
 	mov [.fadt], esi
-
-	mov esi, .debug_msg1
-	call kdebug_print
-
-	mov eax, [.fadt]
-	call hex_dword_to_string
-	call kdebug_print_noprefix
-
-	mov esi, _crlf
-	call kdebug_print_noprefix
 
 	jmp .verify_checksum
 
@@ -348,16 +375,6 @@ init_acpi_power:
 .enabled:
 
 .find_s5:
-	mov esi, .debug_msg4
-	call kdebug_print
-
-	mov eax, [acpi_fadt.dsdt]
-	call hex_dword_to_string
-	call kdebug_print_noprefix
-
-	mov esi, _crlf
-	call kdebug_print_noprefix
-
 	; identity-page the DSDT
 	mov eax, [acpi_fadt.dsdt]
 	mov ebx, [acpi_fadt.dsdt]
@@ -460,15 +477,13 @@ init_acpi_power:
 .facp				db "FACP"
 .fadt				dd 0
 .s5_signature			db "_S5_",0
-.debug_msg1			db "acpi: FADT found at ",0
 .debug_msg2			db "acpi: system is already in ACPI mode.",10,0
 .debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
-.debug_msg4			db "acpi: DSDT found at ",0
 .irq_msg			db "acpi: using IRQ ",0
 .debug_msg5			db "acpi: checksum error...",10,0
 .no_fadt_msg			db "acpi: FADT not found.",10,0
 
-.int_msg			db ", INT ",0
+.int_msg			db ", INT 0x",0
 
 acpi_s5				dd 0
 acpi_slp_typa			dw 0

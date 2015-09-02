@@ -96,8 +96,8 @@ vmm_init:
 
 	mov eax, cr0
 	or eax, 0x80000000			; enable paging
-	or eax, 0x40000000			; enable memory caching
-	or eax, 0x20000000			; enable write-through caching
+	and eax, 0xDFFFFFFF			; disable write-through caching
+	and eax, 0xBFFFFFFF			; disable caching
 	and eax, 0xFFFEFFFF			; ensure the kernel can write to read-only pages
 	mov cr0, eax
 
@@ -238,7 +238,7 @@ vmm_map_memory:
 .blocks				dd 0
 .attributes			dd 0
 .debug_msg1			db "vmm: mapping ",0
-.debug_msg2			db " blocks of physical memory to virtual address ",0
+.debug_msg2			db " blocks of physical memory to virtual address 0x",0
 .debug_msg3			db "vmm: alignment error.",10,0
 
 ; vmm_unmap_memory:
@@ -366,7 +366,7 @@ vmm_unmap_memory:
 .virtual_copy			dd 0
 .blocks				dd 0
 .debug_msg1			db "vmm: freeing ",0
-.debug_msg2			db " blocks of virtual memory at address ",0
+.debug_msg2			db " blocks of virtual memory at address 0x",0
 .debug_msg3			db "vmm: alignment error.",10,0
 .debug_msg4			db "vmm: failed; there is no memory allocated at virtual address ",0
 

@@ -144,8 +144,8 @@ init_cmos:
 
 .debug_msg			db "cmos: initializing CMOS RTC...",10,0
 .debug_msg2			db "cmos: the time is ",0
-.debug_msg3			db "cmos: no century register found, defaulting to 32...",10,0
-.debug_msg4			db "acpi: CMOS century register is ",0
+.debug_msg3			db "cmos: no century register found, defaulting to 0x32...",10,0
+.debug_msg4			db "acpi: CMOS century register is 0x",0
 .debug_msg5			db "cmos: the date is ",0
 
 ; get_time_24:

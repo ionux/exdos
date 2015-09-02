@@ -121,12 +121,15 @@ pci_read_dword:
 	or eax, ebx
 	or eax, 0x80000000
 
+	call iowait
 	mov edx, 0xCF8
 	out dx, eax
 
+	call iowait
 	mov edx, 0xCFC
 	in eax, dx
 
+	call iowait
 	mov edx, 0
 	ret
 
@@ -170,13 +173,16 @@ pci_write_dword:
 	mov ebx, 0x80000000
 	or eax, ebx
 
+	call iowait
 	mov edx, 0xCF8
 	out dx, eax
 
+	call iowait
 	mov eax, [.dword]
 	mov edx, 0xCFC
 	out dx, eax
 
+	call iowait
 	mov edx, 0
 	ret
 

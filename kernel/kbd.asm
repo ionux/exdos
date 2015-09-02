@@ -406,6 +406,8 @@ get_string_echo:
 
 	mov al, [x_cur]
 	mov [.x], al
+	mov al, [y_cur]
+	mov [.y], al
 
 	mov edi, [.string]
 	add edi, 255
@@ -467,14 +469,34 @@ get_string_echo:
 .backspace:
 	mov bl, [x_cur]
 	cmp bl, [.x]
-	jle .loop
+	je .check_y
 
+	cmp bl, 0
+	je .line_before
+
+.do_backspace:
 	dec edi
 	mov esi, .backspace_chars
 	mov ecx, [text_background]
 	mov edx, [text_foreground]
 	call print_string_graphics_cursor
 
+	jmp .loop
+
+.check_y:
+	mov bl, [y_cur]
+	cmp bl, [.y]
+	je .loop
+	jmp .do_backspace
+
+.line_before:
+	mov bl, [x_cur_max]
+	mov [x_cur], bl
+	dec byte[y_cur]
+	dec edi
+	pusha
+	call redraw_text_cursor
+	popa
 	jmp .loop
 
 .done:
@@ -490,6 +512,7 @@ get_string_echo:
 .string				dd 0
 .end_string			dd 0
 .x				db 0
+.y				db 0
 .tmp:				times 2 db 0
 .backspace_chars		db 8,32,8,0
 
