@@ -12,6 +12,7 @@
 
 ;; Functions:
 ; init_hdd
+; init_edd_info
 ; hdd_read_sectors
 ; hdd_write_sectors
 ; hdd_get_info
@@ -70,10 +71,13 @@ use16
 	mov ax, dx
 	mov [disk_size_sectors], eax
 
-	mov ax, 0
+	mov ah, 0x41
+	mov bx, 0x55AA
 	mov dl, [bootdisk]
 	int 0x13
-	jc .fail
+	jc .no_edd
+
+	mov [edd_version], ah
 
 	call go32
 
@@ -101,6 +105,34 @@ use32
 	mov esi, .debug_msg3
 	call kdebug_print_noprefix
 
+	mov esi, .debug_msg4
+	call kdebug_print
+
+	movzx eax, [edd_version]
+	call bcd_to_int
+	and eax, 0xFF
+	call int_to_string
+	push esi
+
+	mov al, [esi]
+	mov byte[.tmp], al
+
+	mov esi, .tmp
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg5
+	call kdebug_print_noprefix
+
+	pop esi
+	mov al, [esi+1]
+	mov byte[.tmp], al
+
+	mov esi, .tmp
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg6
+	call kdebug_print_noprefix
+
 	ret
 
 use16
@@ -113,10 +145,148 @@ use32
 	mov esi, .fail_msg
 	jmp draw_boot_error
 
+use16
+
+.no_edd:
+	call go32
+
+use32
+
+	mov esi, .no_edd_msg
+	jmp draw_boot_error
+
 .fail_msg			db "Failed to access the boot drive: hard disk failure.",0
 .debug_msg1			db "hdd: BIOS boot drive number is 0x",0
 .debug_msg2			db "hdd: disk size is ",0
 .debug_msg3			db " MB.",10,0
+.debug_msg4			db "hdd: EDD version ",0
+.debug_msg5			db ".",0
+.debug_msg6			db " present.",10,0
+.no_edd_msg			db "Boot drive doesn't support EDD extensions.",0
+.tmp:				times 2 db 0
+
+edd_version			db 0
+
+; init_edd_info:
+; Gets hard disk information from EDD BIOS
+
+init_edd_info:
+	call go16
+
+use16
+
+	mov al, [edd_version]
+	shr al, 4
+
+	cmp al, 1			; EDD version 1
+	je .1
+
+	cmp al, 2
+	je .2
+
+	cmp al, 3
+	je .3
+
+	jmp init_hdd.no_edd
+
+.1:
+	mov word[edd_drive_params.size], 0x1A
+	jmp .work
+
+.2:
+	mov word[edd_drive_params.size], 0x1E
+	jmp .work
+
+.3:
+	mov word[edd_drive_params.size], 0x42
+
+.work:
+	mov ah, 0x48			; get EDD parameters
+	mov dl, [bootdisk]
+	mov si, edd_drive_params
+	int 0x13
+	jc init_hdd.no_edd
+
+	call go32
+
+use32
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov eax, [edd_drive_params.cylinders]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [edd_drive_params.heads]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov eax, [edd_drive_params.sectors_per_track]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	cmp word[edd_drive_params], 0x30
+	jl .quit
+
+	mov esi, .debug_msg3
+	call kdebug_print
+
+	mov esi, edd_drive_params.host_bus
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg4
+	call kdebug_print_noprefix
+
+	mov esi, edd_drive_params.interface_type
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+.quit:
+	ret
+
+.debug_msg1				db "hdd: C/H/S ",0
+.debug_msg2				db "/",0
+.debug_msg3				db "hdd: host bus is ",0
+.debug_msg4				db ", interface type is ",0
+
+; edd_drive_params:
+; EDD drive parameters
+
+edd_drive_params:
+	; EDD 1.0
+	.size				dw 0
+	.information_flags		dw 0
+	.cylinders			dd 0
+	.heads				dd 0
+	.sectors_per_track		dd 0
+	.total_sectors			dq 0
+	.bytes_per_sector		dw 0
+
+	; EDD 2.x
+	.edd_configuration_params	dd 0
+
+	; EDD 3.0
+	.signature			dw 0
+	.device_path_info		db 0
+	.reserved:			times 3 db 0
+	.host_bus:			times 4 db 0
+	.interface_type:		times 8 db 0
+	.interface_path:		times 8 db 0
+	.device_path:			times 8 db 0
+	.reserved2			db 0
+	.checksum			db 0
 
 ; hdd_read_sectors:
 ; Reads a series of sectors from the hard disk

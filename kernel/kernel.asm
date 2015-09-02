@@ -318,6 +318,7 @@ use32
 	call clear_screen
 
 	call init_hdd				; initialize hard disk
+	call init_edd_info			; get EDD BIOS info
 	call detect_exdfs			; verify the partition is formatted with ExDFS
 
 	mov eax, 0x2000000
