@@ -552,8 +552,8 @@ help_msg		db "ExDOS v0.1.0 -- http://github.com/omarrx024/exdos",13,10
 			db " time         -- Shows the time",0
 my_pid			dd 0
 
-input_buffer:
-			rb 256
+input_buffer:		rb 256
+params:			rb 256
 
 align 4096
 end_of_file:

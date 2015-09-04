@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function			= 49
+os_api_max_function			= 50
 
 is_syscall_executing			db 0
 
@@ -133,7 +133,7 @@ os_api_table:
 	dd get_file_size			; 47
 	dd load_file				; 48
 	dd write_file				; 49
-	;dd delete_file				; 50
+	dd delete_file				; 50
 	;dd copy_file				; 51
 	;dd rename_file				; 52
 

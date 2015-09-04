@@ -77,6 +77,7 @@ get_filenames_string		= 46
 get_file_size			= 47
 load_file			= 48
 write_file			= 49
+delete_file			= 50
 
 macro os_api function_number {
 	mov eax, function_number

@@ -236,8 +236,7 @@ get_program_info:
 
 ; execute_program:
 ; Executes a program
-; In\	ESI = Program path with parameters
-; In\	EBX = Program return address
+; In\	ESI = Program file name with parameters, ASCIIZ
 ; Out\	EAX = Program exit code
 ; Out\	EBX = 0 on success, 0xDEADBEEF if program doesn't exist, 0xDEADC0DE if program caused errors, 0xBADC0DE if program is corrupt, 0xFFFFFFFF if program can't fit in memory
 
@@ -246,6 +245,11 @@ execute_program:
 
 	cmp byte[running_processes], maximum_processes
 	je .too_little_memory
+
+	mov esi, [program_name]
+	mov edi, program_path
+	mov ecx, 256
+	rep movsb
 
 	mov esi, [program_name]
 	mov edi, 0x40000
@@ -273,6 +277,25 @@ execute_program:
 	test dword[program_header.program_size], 0xFFF
 	jnz .corrupt
 
+	mov esi, program_path
+	call get_string_size
+	mov ecx, eax
+	mov esi, program_path
+	mov dl, ' '
+	call find_byte_in_string
+	jc .no_params
+
+	mov byte[.is_there_params], 1
+	inc esi
+	push esi
+	jmp .allocate_memory
+
+.no_params:
+	mov byte[.is_there_params], 0
+	mov eax, 0
+	push eax
+
+.allocate_memory:
 	mov eax, [program_header.program_size]
 	mov ebx, 1024
 	mov edx, 0
@@ -331,11 +354,12 @@ execute_program:
 
 	call enter_ring3
 
+.execute:
 	push .next
 	mov eax, [program_header.entry_point]
 	push eax
 	movzx eax, [running_processes]
-	mov ebx, 0
+	mov ebx, 0				; give program a clean state
 	mov ecx, 0
 	mov edx, 0
 	mov esi, 0
@@ -344,6 +368,7 @@ execute_program:
 	ret
 
 .next:
+	add esp, 4
 	call enter_ring0
 	dec byte[running_processes]
 
@@ -392,6 +417,9 @@ execute_program:
 .debug_msg1			db "kernel: creating process '",0
 .debug_msg2			db "' with PID ",0
 .return				dd 0
+.is_there_params		db 0
+
+program_path:			rb 256
 
 ; panic_no_processes:
 ; Kernel panic when there are no processes

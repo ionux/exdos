@@ -10,6 +10,7 @@ echo Compiling kernel...
 fasm kernel/kernel.asm output/kernel.sys
 echo Compiling shell and programs...
 fasm shell/shell.asm output/init.exe
+fasm shell/echo.asm output/echo.exe
 fasm programs/hello.asm output/hello.exe
 fasm programs/draw.asm output/draw.exe
 fasm programs/hello2.asm output/hello2.exe
@@ -22,6 +23,7 @@ dd if=output/init.exe conv=notrunc bs=512 seek=500 of=exdos.img
 dd if=output/hello.exe conv=notrunc bs=512 seek=600 of=exdos.img
 dd if=output/hello2.exe conv=notrunc bs=512 seek=602 of=exdos.img
 dd if=output/draw.exe conv=notrunc bs=512 seek=650 of=exdos.img
+dd if=output/echo.exe conv=notrunc bs=512 seek=670 of=exdos.img
 echo Removing temporary files...
 rm -r output
 echo Finished. You can now run qemu-system-i386 exdos.img

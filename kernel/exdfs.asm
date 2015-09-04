@@ -21,6 +21,7 @@
 ; get_filenames_string
 ; get_file_size
 ; write_file
+; delete_file
 
 use32
 
@@ -733,4 +734,62 @@ write_file:
 .lba				dd 0
 .size_sectors			dd 0
 
+; delete_file:
+; Deletes a file from the disk
+; In\	ESI = File name
+; Out\	EAX = Status
+;	0 - success, 1 - file not found, 2 - disk error
 
+delete_file:
+	call internal_filename
+	call load_root_directory
+	jc .disk_error
+
+	mov esi, disk_buffer+32		; first entry is reserved...
+	mov edi, new_filename
+	mov ecx, 1
+
+.find_file:
+	pusha
+	mov ecx, 11
+	rep cmpsb
+	je .found_file
+	popa
+
+	add ecx, 1
+	cmp ecx, 512
+	je .file_not_found
+
+	add esi, 32
+	jmp .find_file
+
+.found_file:
+	popa
+	mov edi, esi
+	mov eax, [edi+12]		; LBA
+	mov [.lba], eax
+	mov eax, [edi+16]		; size in sectors
+	mov [.size], eax
+
+	mov al, 0xAF			; mark file as deleted
+	stosb
+	mov al, 0
+	mov ecx, 31
+	rep stosb			; clear the rest of the root directory entry
+
+	call write_root_directory
+	jc .disk_error
+
+	mov eax, 0
+	ret
+
+.file_not_found:
+	mov eax, 1
+	ret
+
+.disk_error:
+	mov eax, 2
+	ret
+
+.lba				dd 0
+.size				dd 0
