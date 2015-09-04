@@ -12,6 +12,7 @@ echo Compiling shell and programs...
 fasm shell/shell.asm output/init.exe
 fasm programs/hello.asm output/hello.exe
 fasm programs/draw.asm output/draw.exe
+fasm programs/hello2.asm output/hello2.exe
 echo Installing OS on disk image...
 dd if=output/mbr.sys conv=notrunc bs=512 count=1 of=exdos.img
 dd if=output/boot_hdd.sys conv=notrunc bs=512 seek=63 of=exdos.img
@@ -19,6 +20,7 @@ dd if=output/root.sys conv=notrunc bs=512 seek=64 of=exdos.img
 dd if=output/kernel.sys conv=notrunc bs=512 seek=200 of=exdos.img
 dd if=output/init.exe conv=notrunc bs=512 seek=500 of=exdos.img
 dd if=output/hello.exe conv=notrunc bs=512 seek=600 of=exdos.img
+dd if=output/hello2.exe conv=notrunc bs=512 seek=602 of=exdos.img
 dd if=output/draw.exe conv=notrunc bs=512 seek=650 of=exdos.img
 echo Removing temporary files...
 rm -r output

@@ -83,6 +83,20 @@ init_cpuid:
 	mov esi, _crlf
 	call kdebug_print_noprefix
 
+	mov esi, .msg
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+	mov esi, cpu_brand
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+	mov esi, .msg2
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
+
 	ret
 
 .no_extended:
@@ -91,6 +105,8 @@ init_cpuid:
 
 .debug_msg1			db "cpu: CPU brand is ",0
 .no_vendor_msg			db "CPU doesn't support CPUID extended functions.",0
+.msg				db "ExDOS running on a '",0
+.msg2				db "' CPU.",13,10,0
 
 cpu_vendor:			times 13 db 0
 cpu_brand:			times 50 db 0
@@ -145,6 +161,22 @@ detect_cpu_speed:
 	mov esi, .debug_msg3
 	call kdebug_print_noprefix
 
+	mov esi, .msg
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
+	movzx eax, [cpu_speed]
+	call int_to_string
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
+	mov esi, .msg2
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
 	ret
 
 .no_tsc:
@@ -157,6 +189,8 @@ detect_cpu_speed:
 .debug_msg1			db "cpu: getting CPU speed using TSC...",10,0
 .debug_msg2			db "cpu: CPU speed is ",0
 .debug_msg3			db " MHz.",10,0
+.msg				db "CPU speed is ",0
+.msg2				db " MHz.",13,10,0
 
 cpu_speed			dw 0
 

@@ -11,13 +11,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 use32
-org 0x1000000
+org 0x8000000
 
 include			"shell/kapi.asm"
 
+file_header:
+	.magic			db "ExDOS"
+	.version		db 1
+	.type			db 0		; 0: program, 1: driver
+	.program_size		dd end_of_file - file_header
+	.entry_point		dd main
+	.manufacturer		dd 0
+	.program_name		dd 0
+	.driver_type		dw 0
+	.driver_hardware	dd 0
+	.reserved		dd 0
+
 main:
-	mov ebx, 0
-	os_api clear_screen
+	mov [my_pid], eax			; save the PID of the process
 
 	mov esi, crlf
 	os_api print_string_cursor
@@ -205,6 +216,12 @@ clear:
 	jmp cmd
 
 exit:
+	cmp dword[my_pid], 1			; if the shell is the only process running --
+	je .shutdown				; -- then shut down the PC
+
+	ret					; if not, just quit
+
+.shutdown:
 	os_api shutdown
 
 reboot_:
@@ -533,6 +550,12 @@ help_msg		db "ExDOS v0.1.0 -- http://github.com/omarrx024/exdos",13,10
 			db " reboot       -- Reboots the PC",13,10
 			db " sysinfo      -- Shows system information",13,10
 			db " time         -- Shows the time",0
+my_pid			dd 0
 
 input_buffer:
+			rb 256
+
+align 4096
+end_of_file:
+
 

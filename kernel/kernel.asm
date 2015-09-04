@@ -26,11 +26,9 @@ jmp os_api
 
 use16
 
-define TODAY "Monday, 24th August, 2015"
+define TODAY "Friday, 4th September, 2015"
 
 _kernel_version			db "ExDOS v0.1.0 pre-alpha built ", TODAY, 0
-_api_version			dd 1
-_copyright			db "(C) by Omar Mohammad",0
 _crlf				db 13,10,0
 
 syswidth			dw 0
@@ -234,8 +232,13 @@ check_serial_loop:
 .msg			db "Should the kernel debug messages be forwarded to serial port? (y/N)",13,10
 			db "Your choice: ",0
 serial_enabled		db 0
+hardware_bitflags	dw 0
 
 enter_pmode:
+	mov eax, 0
+	int 0x11				; detect hardware
+	mov [hardware_bitflags], ax
+
 	mov eax, 0xEC00
 	mov ebx, 1
 	int 0x15				; notify the BIOS we're going to run in protected mode
@@ -314,45 +317,12 @@ use16
 use32
 
 .draw_boot_screen:
-	mov ebx, 0xC0C0C0
+	mov ebx, 0
 	call clear_screen
 
 	call init_hdd				; initialize hard disk
 	call init_edd_info			; get EDD BIOS info
 	call detect_exdfs			; verify the partition is formatted with ExDFS
-
-	mov eax, 0x2000000
-	mov ebx, 0x2000000
-	mov ecx, 512
-	mov edx, 3
-	call vmm_map_memory
-
-	mov esi, bootlogo
-	mov edi, 0x2000000
-	call load_file
-
-	cmp eax, 0
-	jne .continue_booting
-
-	call get_screen_center
-	sub bx, 137
-	sub cx, 69
-	mov esi, 0x2000000
-	call draw_image
-
-.continue_booting:
-	call get_screen_center
-	sub bx, 80
-	mov ecx, [screen.height]
-	sub cx, 16
-	mov edx, 0x606060
-	mov esi, _copyright
-	call print_string_transparent
-
-	mov eax, 0x2000000
-	mov ecx, 512
-	call vmm_unmap_memory
-
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
 	call init_cpuid				; get CPU brand
@@ -367,46 +337,15 @@ use32
 
 	sti
 
-	mov eax, 0xA00000			; look for free memory starting at 10 MB
-	mov ecx, 512				; find at least 2 MB of free memory
-	call pmm_find_free_block
-	jc out_of_memory
-
-	mov ebx, 0x1000000			; map the memory to 16 MB
-	mov ecx, 512
-	mov edx, 7				; user, read/write, present
-	call vmm_map_memory
+	mov ebx, 0
+	call clear_screen
 
 	mov esi, init_filename
-	mov edi, 0x1000000			; load the init to virtual address 16 MB
-	call load_file
+	call execute_program
 
-	cmp eax, 0
-	jne .init_missing
+	jmp panic_no_processes
 
-	call enter_ring3			; NEVER EVER let programs run in ring 0!
-	jmp 0x1000000
-
-.init_missing:
-	mov byte[x_cur], 2
-	mov byte[y_cur], 1
-	mov esi, .init_missing_msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
-	call print_string_graphics_cursor
-
-	sti
-
-.hlt:
-	hlt
-	jmp .hlt
-
-.init_missing_msg		db "init.exe is missing.",0
-
-_boot_error_common		db "Press Control+Alt+Delete to reboot your PC.",0
-bootlogo			db "boot.bmp"
-init_filename			db "init.exe"
-
+init_filename			db "init.exe",0
 
 include				"kernel/stdio.asm"		; Standard I/O
 include				"kernel/string.asm"		; String manipulation routines

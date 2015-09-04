@@ -80,6 +80,11 @@ detect_exdfs:
 	mov esi, _crlf
 	call kdebug_print_noprefix
 
+	mov esi, .msg
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
 	ret
 
 .bad:
@@ -94,6 +99,7 @@ detect_exdfs:
 .exdfs_id			db "EXDFS   "
 .volume_label:			times 9 db 0
 .serial				dd 0
+.msg				db "Found EXDFS partition.",13,10,0
 
 ; internal_filename:
 ; Converts external file name to internal file name

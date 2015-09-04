@@ -29,10 +29,6 @@ init_serial:
 	cmp byte[serial_enabled], 0
 	je .no_serial
 
-	mov al, 32+4
-	mov ebp, serial_irq
-	call install_isr
-
 	mov edi, 0x400
 	cmp word[edi], 0
 	je .no_serial
@@ -150,6 +146,8 @@ send_byte_via_serial:
 	mov eax, 0
 	ret
 
+.string:		times 2 db 0
+
 ; send_string_via_serial:
 ; Sends a string via serial port
 ; In\	ESI = String
@@ -173,14 +171,6 @@ send_string_via_serial:
 .no_serial:
 	mov eax, 1
 	ret
-
-; serial_irq:
-; Serial port IRQ 4 handler
-
-serial_irq:
-	cli
-	hlt
-
 
 
 

@@ -133,6 +133,11 @@ use32
 	mov esi, .debug_msg6
 	call kdebug_print_noprefix
 
+	mov esi, .msg
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
 	ret
 
 use16
@@ -155,6 +160,7 @@ use32
 	mov esi, .no_edd_msg
 	jmp draw_boot_error
 
+.msg				db "Initialized hard disk.",13,10,0
 .fail_msg			db "Failed to access the boot drive: hard disk failure.",0
 .debug_msg1			db "hdd: BIOS boot drive number is 0x",0
 .debug_msg2			db "hdd: disk size is ",0
@@ -254,12 +260,18 @@ use32
 	call kdebug_print_noprefix
 
 .quit:
+	mov esi, .msg
+	mov ecx, 0xC0C0C0
+	mov edx, 0
+	call print_string_graphics_cursor
+
 	ret
 
 .debug_msg1				db "hdd: C/H/S ",0
 .debug_msg2				db "/",0
 .debug_msg3				db "hdd: host bus is ",0
 .debug_msg4				db ", interface type is ",0
+.msg					db "Detected EDD BIOS.",13,10,0
 
 ; edd_drive_params:
 ; EDD drive parameters
@@ -311,10 +323,10 @@ hdd_read_sectors:
 use16
 
 .read:
-	mov ax, 0
-	mov dl, [bootdisk]
-	int 0x13
-	jc .fail
+	;mov ax, 0
+	;mov dl, [bootdisk]
+	;int 0x13
+	;jc .fail
 
 	mov word[dap.segment], 0x4000
 	mov word[dap.offset], 0

@@ -192,7 +192,7 @@ mem_info:
 
 kernel_info:
 	mov esi, _kernel_version
-	mov eax, 1
+	mov eax, api_version
 	mov ebx, cpu_brand
 	movzx ecx, [cpu_speed]
 

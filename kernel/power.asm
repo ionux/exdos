@@ -20,9 +20,6 @@ use32
 ; Reboots the PC
 
 reboot:
-	cmp byte[is_program_running], 0
-	jne .program
-
 	mov esi, .debug_msg
 	call kdebug_print
 
@@ -45,23 +42,6 @@ reboot:
 	dw 0
 	dd 0
 
-.program:
-	mov esi, .error_msg
-	call kdebug_print
-
-	mov esi, [program_name]
-	call kdebug_print_noprefix
-
-	mov esi, .error_msg2
-	call kdebug_print_noprefix
-
-	mov esp, [program_return_stack]
-	mov ebp, [program_return]
-	mov ebx, 0xDEADC0DE
-	jmp ebp
-
-.error_msg			db "task: program ",0
-.error_msg2			db " attempted to reboot system; access denied.",10,0
 .debug_msg			db "kernel: reboot requested.",10,0
 .debug_msg2			db "kernel: attempting PS/2 reset...",10,0
 
@@ -69,9 +49,6 @@ reboot:
 ; Shuts down the PC
 
 shutdown:
-	cmp byte[is_program_running], 0
-	jne .program
-
 	mov esi, .debug_msg
 	call kdebug_print
 
@@ -126,23 +103,6 @@ shutdown:
 	hlt
 	jmp .hang
 
-.program:
-	mov esi, .error_msg
-	call kdebug_print
-
-	mov esi, [program_name]
-	call kdebug_print_noprefix
-
-	mov esi, .error_msg2
-	call kdebug_print_noprefix
-
-	mov esp, [program_return_stack]
-	mov ebp, [program_return]
-	mov ebx, 0xDEADC0DE
-	jmp ebp
-
-.error_msg			db "task: program ",0
-.error_msg2			db " attempted to shut down system; access denied.",10,0
 .safe_msg			db "It's now safe to power-off your PC.",0
 .debug_msg			db "kernel: shutdown requested.",10,0
 

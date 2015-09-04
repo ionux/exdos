@@ -20,6 +20,11 @@
 
 use32
 
+process_list			= 0x60000
+process_list_entry_size		= 8
+maximum_processes		= 255
+process_list_size		= maximum_processes*process_list_entry_size	; 2 KB
+
 align 32
 
 ; tss:
@@ -215,6 +220,20 @@ program_header:
 
 program_header_size		= $ - program_header
 
+running_processes		db 0
+
+; get_program_info:
+; Gets the memory info on a specified program
+; In\	EAX = Slot number
+; Out\	EDI = Pointer to program information
+
+get_program_info:
+	mov ebx, process_list_entry_size
+	mul ebx
+	mov edi, eax
+	add edi, process_list
+	ret
+
 ; execute_program:
 ; Executes a program
 ; In\	ESI = Program path with parameters
@@ -225,15 +244,12 @@ program_header_size		= $ - program_header
 execute_program:
 	mov [program_name], esi
 
-	mov eax, dword[esp+4]
-	mov [program_return], eax
-	mov [program_return_stack], esp
-	add dword[program_return_stack], 8
+	cmp byte[running_processes], maximum_processes
+	je .too_little_memory
 
 	mov esi, [program_name]
-	mov edi, 0x40000			; load the program to a temporary location
+	mov edi, 0x40000
 	call load_file
-
 	cmp eax, 0
 	jne .not_found
 
@@ -242,17 +258,19 @@ execute_program:
 	mov ecx, program_header_size
 	rep movsb
 
-	mov esi, program_header.magic
+	mov esi, program_header
 	mov edi, .program_magic
 	mov ecx, 5
 	rep cmpsb
 	jne .corrupt
 
+	cmp byte[program_header.version], 1
+	jne .corrupt
+
 	cmp byte[program_header.type], 0
 	jne .corrupt
 
-	mov eax, [program_header.program_size]
-	test eax, 0xFFF			; program size must be multiple of 4 KB
+	test dword[program_header.program_size], 0xFFF
 	jnz .corrupt
 
 	mov eax, [program_header.program_size]
@@ -262,16 +280,48 @@ execute_program:
 	mov ebx, 4
 	mov edx, 0
 	div ebx
-	mov [.size], eax
 
-	mov ecx, [.size]		; enough memory for the program
-	mov eax, 0x1400000		; look for free memory starting at 20 MB
+	push eax
+	mov ecx, eax
+	mov eax, 0x1400000			; 20 MB
 	call pmm_find_free_block
 	jc .too_little_memory
 
-	mov ebx, 0x8000000		; map the program to 128 MB
-	mov ecx, [.size]
-	mov edx, 7			; present | user | read/write
+	pop ecx
+	push eax
+	push ecx
+	inc byte[running_processes]
+	movzx eax, [running_processes]
+	call get_program_info
+
+	pop ecx
+	pop eax
+	push eax
+	push ecx
+
+	mov [edi], eax
+	mov [edi+4], ecx
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov esi, [program_name]
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	movzx eax, [running_processes]
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	pop ecx
+	pop eax
+	mov ebx, 0x8000000			; 128 MB
+	mov edx, 7				; User | Present | Read/write
 	call vmm_map_memory
 
 	mov esi, 0x40000
@@ -279,46 +329,77 @@ execute_program:
 	mov ecx, [program_header.program_size]
 	rep movsb
 
-	mov byte[is_program_running], 1
-
 	call enter_ring3
 
+	push .next
 	mov eax, [program_header.entry_point]
-	call eax
+	push eax
+	movzx eax, [running_processes]
+	mov ebx, 0
+	mov ecx, 0
+	mov edx, 0
+	mov esi, 0
+	mov edi, 0
+	mov ebp, 0
+	ret
 
-	pusha
+.next:
 	call enter_ring0
+	dec byte[running_processes]
+
+	cmp byte[running_processes], 0
+	je panic_no_processes
+
+	mov [.return], eax
+
+	movzx eax, [running_processes]
+	inc eax
+	call get_program_info
 
 	mov eax, 0x8000000
-	mov ecx, [.size]
-	call vmm_unmap_memory		; free the memory used by the program
+	mov ecx, [edi+4]
+	call vmm_unmap_memory
 
-	popa
+	movzx eax, [running_processes]
+	call get_program_info
 
-	mov byte[is_program_running], 0
+	mov eax, [edi]
+	mov ecx, [edi+4]
+	mov ebx, 0x8000000
+	mov edx, 7
+	call vmm_map_memory
+
 	mov ebx, 0
 	ret
 
 .not_found:
-	mov byte[is_program_running], 0
 	mov eax, 0
 	mov ebx, 0xDEADBEEF
 	ret
 
 .corrupt:
-	mov byte[is_program_running], 0
 	mov eax, 0
 	mov ebx, 0xBADC0DE
 	ret
 
 .too_little_memory:
-	mov byte[is_program_running], 0
 	mov eax, 0
 	mov ebx, 0xFFFFFFFF
 	ret
 
 .program_magic			db "ExDOS"
 .size				dd 0
+.debug_msg1			db "kernel: creating process '",0
+.debug_msg2			db "' with PID ",0
+.return				dd 0
 
+; panic_no_processes:
+; Kernel panic when there are no processes
+
+panic_no_processes:
+	mov esi, .msg
+	call draw_panic_screen
+
+.msg				db "There are no processes to execute!",0
 
 

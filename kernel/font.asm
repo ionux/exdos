@@ -22,8 +22,8 @@ font_height		dd 16
 font_data:
 
 ;file			"kernel/cp437.bin"		; Codepage 437
-;file			"kernel/font.bin"		; Alotware font
-include			"kernel/glaux-mono.asm"
+file			"kernel/font.bin"		; Alotware font
+;include			"kernel/glaux-mono.asm"
 
 
 
