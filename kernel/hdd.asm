@@ -134,8 +134,8 @@ use32
 	call kdebug_print_noprefix
 
 	mov esi, .msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	ret
@@ -261,8 +261,8 @@ use32
 
 .quit:
 	mov esi, .msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	ret

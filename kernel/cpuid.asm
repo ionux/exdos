@@ -84,16 +84,16 @@ init_cpuid:
 	call kdebug_print_noprefix
 
 	mov esi, .msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 	mov esi, cpu_brand
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 	mov esi, .msg2
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 
@@ -162,19 +162,19 @@ detect_cpu_speed:
 	call kdebug_print_noprefix
 
 	mov esi, .msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	movzx eax, [cpu_speed]
 	call int_to_string
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	mov esi, .msg2
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	ret

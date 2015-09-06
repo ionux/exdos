@@ -82,8 +82,8 @@ detect_exdfs:
 	call kdebug_print_noprefix
 
 	mov esi, .msg
-	mov ecx, 0xC0C0C0
-	mov edx, 0
+	mov ecx, 0
+	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
 	ret
@@ -108,86 +108,81 @@ detect_exdfs:
 ; Out\	EDI = Internal file name as ASCIIZ string
 
 internal_filename:
-	cmp byte[esi], 0
-	je .error
+	mov [.filename], esi
+	call get_string_size
+	mov [.size], eax
+	mov ecx, eax
+	mov esi, [.filename]
+	mov dl, 0xAF
+	call find_byte_in_string
+	jnc .bad_filename
 
-	cmp byte[esi], 0xAF
-	je .error
+	mov ecx, [.size]
+	mov esi, [.filename]
+	mov dl, '/'
+	call find_byte_in_string
+	jnc .bad_filename
 
-	mov eax, 0
-	mov edi, new_filename
-	mov ecx, 13
-	rep stosb
+	mov ecx, [.size]
+	mov esi, [.filename]
+	mov dl, '\'
+	call find_byte_in_string
+	jnc .bad_filename
 
+	mov esi, [.filename]
 	mov edi, new_filename
 	mov ecx, 0
 
 .loop:
 	lodsb
-
 	cmp al, '.'
 	je .found_dot
 
-	cmp al, 0
-	je .error
-
 	stosb
 	inc ecx
-
-	cmp ecx, 11
-	jge .error
+	cmp ecx, 8
+	jg .bad_filename
 
 	jmp .loop
 
 .found_dot:
-	cmp ecx, 1
-	je .error
-
-	cmp ecx, 8
+	cmp edi, new_filename+8
 	je .do_extension
 
-.add_spaces:
+.fill_spaces:
 	mov al, ' '
 	stosb
-
-	inc ecx
-	cmp ecx, 8
+	cmp edi, new_filename+8
 	je .do_extension
-
-	jmp .add_spaces
+	jmp .fill_spaces
 
 .do_extension:
-	lodsb
-	cmp al, 0
-	je .error
-	stosb
+	push esi
+	call get_string_size
+	pop esi
+	mov ecx, eax
+	cmp ecx, 3
+	jg .bad_filename
 
-	lodsb
-	cmp al, 0
-	je .error
-	stosb
-
-	lodsb
-	cmp al, 0
-	je .error
-	stosb
-
-.done:
-	mov byte[edi], 0
+	mov edi, new_filename+8
+	rep movsb
 
 	mov edi, new_filename
-	mov eax, 0
 	ret
 
-.error:
+.bad_filename:
 	mov edi, new_filename
 	mov al, 0xFE
 	mov ecx, 11
 	rep stosb
+	mov al, 0
+	stosb
 
-	mov eax, 1
-	mov edi, 0
+	mov edi, new_filename
 	ret
+
+.filename			dd 0
+.size				dd 0
 
 ; external_filename:
 ; Converts internal file name to external file name
@@ -195,50 +190,87 @@ internal_filename:
 ; Out\	EDI = External file name as ASCIIZ string
 
 external_filename:
-	mov eax, 0
-	mov ecx, 13
-	mov edi, new_filename
-	rep stosb
+	mov [.filename], esi
+	call get_string_size
+	mov [.size], eax
+	mov ecx, eax
+	cmp ecx, 11
+	jg .bad_filename
 
+	mov esi, [.filename]
+	mov ecx, [.size]
+	mov dl, ' '
+	call find_byte_in_string
+	jc .no_spaces
+
+	mov esi, [.filename]
 	mov edi, new_filename
-	mov ecx, 1
+	mov ecx, 0
+	mov edx, [.filename]
+	add edx, 8
 
 .loop:
 	lodsb
 	cmp al, ' '
-	je .space
-
+	je .found_space
 	stosb
-	add ecx, 1
-	cmp ecx, 12
-	je .done
-
-	cmp ecx, 9
-	je .do_dot
-
-	jmp .loop
-
-.space:
+	inc ecx
 	cmp ecx, 8
-	je .do_dot
-
-	add ecx, 1
+	jg .bad_filename
 	jmp .loop
 
-.do_dot:
+.found_space:
+	cmp esi, edx
+	je .found_extension
+	inc esi
+	jmp .found_space
+
+.found_extension:
 	mov al, '.'
 	stosb
 
-	add ecx, 1
-	jmp .loop
+	push esi
+	call get_string_size
+	pop esi
+	mov ecx, eax
+	rep movsb
 
-.done:
-	mov byte[edi], 0
+	mov al, 0
+	stosb
+
 	mov edi, new_filename
-
 	ret
 
-new_filename:			times 16 db 0
+.no_spaces:
+	mov esi, [.filename]
+	mov edi, new_filename
+	mov ecx, 8
+	rep movsb
+	mov al, '.'
+	stosb
+	mov ecx, 3
+	rep movsb
+	mov al, 0
+	stosb
+
+	mov edi, new_filename
+	ret
+
+.bad_filename:
+	mov edi, new_filename
+	mov al, 0xFE
+	mov ecx, 11
+	rep stosb
+	mov al, 0
+	stosb
+
+	mov edi, new_filename
+	ret
+
+.filename			dd 0
+.size				dd 0
+
+new_filename:			times 12 db 0
 
 ; load_root_directory:
 ; Loads the root directory into RAM
@@ -392,6 +424,10 @@ get_filenames_string:
 	je .skip
 
 	push esi
+	mov edi, .tmp_filename
+	mov ecx, 11
+	rep movsb
+	mov esi, .tmp_filename
 	call external_filename
 
 	mov esi, new_filename
@@ -430,6 +466,7 @@ get_filenames_string:
 	ret
 
 .tmp				dd 0
+.tmp_filename:			times 12 db 0
 
 ; get_file_size:
 ; Gets the size of a file in bytes

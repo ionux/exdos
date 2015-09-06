@@ -323,6 +323,7 @@ use32
 	call init_hdd				; initialize hard disk
 	call init_edd_info			; get EDD BIOS info
 	call detect_exdfs			; verify the partition is formatted with ExDFS
+	call show_detected_hardware		; show INT 0x11 detected hardware
 	call init_sysenter			; initialize SYSENTER/SYSEXIT MSRs
 	call load_tss				; load the TSS
 	call init_cpuid				; get CPU brand

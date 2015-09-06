@@ -21,6 +21,7 @@
 ; init_pit
 ; init_sse
 ; delay_execution
+; show_detected_hardware
 
 use16
 
@@ -148,65 +149,20 @@ check_a20:
 .fail_msg			db "Boot error: A20 gate is not responding.",0
 
 ; detect_memory:
-; Detects memory using BIOS E820, with E801 as a fallback method
+; Detects memory using BIOS E820
 
 detect_memory:
-	mov word[.map_entries], 0
-	mov di, memory_map
-	mov ebx, 0
-
-.loop:
-	mov ecx, 24
-	mov eax, 0xE820
-	mov edx, 0x534D4150
-	push di
-	int 0x15
-	pop di
-
-	jc .error
-
-	cmp eax, 0x534D4150
-	jne .fail
-
-	cmp ebx, 0
-	je .e820_count_mem
-
-	cmp cl, 20
-	je .force_acpi3
-
-	add di, 24
-	add word[.map_entries], 1
-	jmp .loop
-
-.force_acpi3:
-	mov dword[di+20], 0			; if the BIOS returned only 20 bytes, force a valid ACPI 3 entry to make 24 bytes
-
-	add di, 24
-	add word[.map_entries], 1
-	jmp .loop
-
-.error:
-	cmp ebx, 0
-	je .e820_count_mem
-
-.fail:
-	mov si, .fail_msg
-	call print_string_16
-
-	mov si, _crlf
-	call print_string_16
-
 	mov eax, 0xE801
 	mov cx, 0
 	mov dx, 0
 	int 0x15
-	jc .really_fail
-
-	cmp ah, 0x86
-	je .really_fail
+	jc .error
 
 	cmp ah, 0x80
-	je .really_fail
+	je .error
+
+	cmp ah, 0x86
+	je .error
 
 	cmp cx, 0
 	je .use_ax
@@ -215,7 +171,7 @@ detect_memory:
 	mov bx, dx
 
 .use_ax:
-	add ax, 1024				; function E801 doesn't count the first MB
+	add ax, 1024
 	mov [.lomem], ax
 	mov [.himem], bx
 
@@ -223,145 +179,69 @@ detect_memory:
 
 use32
 
-	movzx eax, word[.himem]
+	movzx eax, [.himem]
 	mov ebx, 64
 	mul ebx
-	movzx ebx, word[.lomem]
+	movzx ebx, [.lomem]
 	add eax, ebx
 	mov [usable_memory_kb], eax
-
-	mov ebx, 1024
-	mov edx, 0
-	div ebx
-	mov [usable_memory_mb], eax
+	mov [total_memory_kb], eax
 
 	mov eax, [usable_memory_kb]
 	mov ebx, 1024
-	mul ebx
-	mov [usable_memory_bytes], eax
-
-	mov dword[acpi_reserved_memory], 0x100000	; let's assume ACPI needs 1 MB, because E801 can't get a memory map
-
-	call go16
-
-use16
-
-	ret
-
-.really_fail:
-	mov si, .really_fail_msg
-	call print_string_16
-
-.hlt:
-	hlt
-	jmp .hlt
-
-.e820_count_mem:
-	call go32
-
-use32
-	cli
-
-	movzx eax, word[.map_entries]
-	mov ebx, 24
-	mul ebx
-	mov edi, memory_map
-	add eax, edi
-	mov [.map_size], eax
-
-	mov edi, memory_map
-
-.count_ram:
-	cmp dword[edi+16], 1			; "Normal" usable RAM
-	je .found_good_ram
-
-	mov eax, dword[edi+8]
-	add dword[.tmp_size3], eax
-	mov eax, dword[edi+12]
-	add dword[.tmp_size4], eax
-
-	add edi, 24
-	cmp edi, dword[.map_size]
-	jg .done
-
-	jmp .count_ram
-
-.found_good_ram:
-	mov eax, dword[edi+8]
-	add dword[.tmp_size], eax
-	mov eax, dword[edi+12]
-	add dword[.tmp_size2], eax
-
-	add edi, 24
-	cmp edi, dword[.map_size]
-	jg .done
-	jmp .count_ram
-
-.done:
-	; Now, convert the calculated memory size into KB and MB
-	mov eax, [.tmp_size]
-	mov [usable_memory_bytes], eax
-
-	mov eax, [.tmp_size]
-	mov edx, [.tmp_size2]
-	mov ebx, 1024
+	;mov edx, 0
 	div ebx
-
-	mov [usable_memory_kb], eax
-
-	mov ebx, 1024
-	mov edx, 0
-	div ebx
-
 	mov [usable_memory_mb], eax
-
-	cmp dword[.tmp_size2], 0			; if there is more than 4 GB of memory --
-	jne .maximum_size				; -- maximize the memory size, because the PMM only sees memory below 4 GB
-
-	mov eax, [.tmp_size3]
-	mov edx, [.tmp_size4]
-	mov ebx, 1024
-	div ebx
-	add eax, dword[usable_memory_kb]
-
-	mov [total_memory_kb], eax
-
-	mov ebx, 1024
-	mov edx, 0
-	div ebx
 	mov [total_memory_mb], eax
 
-	jmp .e820_return
+	cmp dword[usable_memory_mb], 2048
+	jge .maximum_size
+
+	mov eax, [usable_memory_kb]
+	mov ebx, 1024
+	mov edx, 0
+	mul ebx
+	mov [usable_memory_bytes], eax
+
+	jmp .finish
 
 .maximum_size:
-	mov dword[usable_memory_bytes], 0xFFFFFFFF	; 4 GB
+	mov dword[usable_memory_mb], 2048
+	mov dword[total_memory_mb], 2048
+	mov dword[usable_memory_kb], 2048*1024
+	mov dword[total_memory_kb], 2048*1024
+	mov dword[usable_memory_bytes], 2048*1024*1024
 
-.e820_return:
+.finish:
 	call go16
 
 use16
 
 	ret
 
-.fail_msg			db "BIOS function E820 failed; using function E801 fallback.",0
-.really_fail_msg		db "Boot error: Failed to detect memory... Broken BIOS?",0
-.lomem				dw 0
-.himem				dw 0
-.map_entries			dw 0
-.map_size			dd 0
-.tmp				dd 0
+.error:
+	mov si, .fail_msg
+	call print_string_16
+
+	jmp $
+
+.fail_msg			db "Boot error: BIOS function 0xE801 failed; couldn't detect memory...",0
+.map_entries			dd 0
 .tmp_size			dd 0
 .tmp_size2			dd 0
-.tmp_size3			dd 0
-.tmp_size4			dd 0
+.lomem				dw 0
+.himem				dw 0
 
 usable_memory_bytes		dd 0
+usable_memory_bytes2		dd 0
 usable_memory_kb		dd 0
 usable_memory_mb		dd 0
 total_memory_kb			dd 0
 total_memory_mb			dd 0
 
 is_paging_enabled		db 0
+
+use16
 
 ; verify_enough_memory:
 ; Verifies there is enough RAM onboard
@@ -690,6 +570,59 @@ delay_execution:
 	popa
 	popfd
 	ret
+
+; show_detected_hardware:
+; Shows detected hardware in debug messages
+
+show_detected_hardware:
+	mov esi, .msg
+	call kdebug_print
+
+.check_floppy:
+	test word[hardware_bitflags], 1		; floppy disks
+	jz .check_fpu
+
+	movzx eax, word[hardware_bitflags]
+	shr eax, 6
+	and eax, 3
+	add eax, 1
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .floppy
+	call kdebug_print_noprefix
+
+.check_fpu:
+	test word[hardware_bitflags], 2		; x87
+	jz .check_mouse
+
+	mov esi, .fpu
+	call kdebug_print_noprefix
+
+.check_mouse:
+	test word[hardware_bitflags], 4		; PS/2 pointing device
+	jz .check_serial
+
+	mov esi, .mouse
+	call kdebug_print_noprefix
+
+.check_serial:
+	movzx eax, word[hardware_bitflags]
+	shr eax, 9
+	and eax, 7
+	call int_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .serial
+	call kdebug_print_noprefix
+
+	ret
+
+.msg				db "kernel: detected hardware: ",0
+.floppy				db " floppy disks, ",0
+.fpu				db "x87 FPU, ",0
+.mouse				db "PS/2 pointing device, ",0
+.serial				db " serial ports ",10,0
 
 ; gdt:
 ; Global Descriptor Table

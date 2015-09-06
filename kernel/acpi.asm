@@ -127,6 +127,11 @@ init_acpi:
 	add esi, eax
 	mov [rsdt_size], esi
 
+	mov esi, .msg
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
 	mov byte[is_there_acpi], 1
 	ret
 
@@ -135,10 +140,22 @@ init_acpi:
 	mov esi, .debug_msg6
 	call kdebug_print
 
+	mov esi, .msg3
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
+	ret
+
 .no_acpi:
 	mov byte[is_there_acpi], 0
 	mov esi, .debug_msg7
 	call kdebug_print
+
+	mov esi, .msg2
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
 
 	ret
 
@@ -152,6 +169,9 @@ init_acpi:
 .debug_msg6			db "acpi: checksum error, ignoring ACPI tables...",10,0
 .debug_msg7			db "acpi: system doesn't support ACPI...",10,0
 .oemid:				times 7 db 0
+.msg				db "Found ACPI tables.",10,0
+.msg2				db "System doesn't support ACPI.",10,0
+.msg3				db "ACPI checksum error, ignoring ACPI tables...",10,0
 
 ; acpi_find_table:
 ; Finds an ACPI table
@@ -453,11 +473,21 @@ init_acpi_power:
 	or ax, 0x2000					; set bit 13 (SLP_EN)
 	mov [acpi_slp_en], ax
 
+	mov esi, .msg
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
 	ret
 
 .checksum_error:
 	mov esi, .debug_msg5
 	call kdebug_print
+
+	mov esi, .msg2
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
 
 	mov word[acpi_slp_typa], 0xFFFF
 	ret
@@ -482,6 +512,8 @@ init_acpi_power:
 .irq_msg			db "acpi: using IRQ ",0
 .debug_msg5			db "acpi: checksum error...",10,0
 .no_fadt_msg			db "acpi: FADT not found.",10,0
+.msg				db "System is now in ACPI mode.",10,0
+.msg2				db "ACPI checksum error, ignoring ACPI tables...",10,0
 
 .int_msg			db ", INT 0x",0
 

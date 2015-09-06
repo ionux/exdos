@@ -42,6 +42,7 @@ text_background			dd 0
 text_foreground			dd 0xC0C0C0		; gray
 cursor_moved			db 0
 text_cursor_visible		db 0
+dirty_line			dd 0
 
 ; get_pixel_offset:
 ; Returns the offset of a pixel
@@ -82,10 +83,24 @@ get_pixel_offset:
 redraw_screen:
 	;pusha
 
-	mov esi, [screen.framebuffer]
-	mov edi, [screen.virtual_buffer]
-	mov ecx, [screen.size]
-	shr ecx, 7				; divide by 128
+	mov eax, [screen.height]
+	mov ebx, [dirty_line]
+	sub eax, ebx
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+
+	mov ecx, eax
+	shr ecx, 7
+
+	push ecx
+	mov eax, 0
+	mov ebx, [dirty_line]
+	call get_pixel_offset
+	pop ecx
+
+	mov esi, edi
+	mov edi, eax
+	add edi, dword[screen.virtual_buffer]
 
 .loop:
 	movdqa xmm0, [esi]
@@ -185,6 +200,7 @@ redraw_text_cursor:
 
 show_text_cursor:
 	mov byte[text_cursor_visible], 1
+	mov dword[dirty_line], 0
 	call redraw_screen
 	ret
 
@@ -193,6 +209,7 @@ show_text_cursor:
 
 hide_text_cursor:
 	mov byte[text_cursor_visible], 0
+	mov dword[dirty_line], 0
 	call redraw_screen				; redraw the screen to hide the old cursor
 	ret
 
@@ -221,6 +238,9 @@ get_screen_center:
 
 put_pixel:
 	pusha
+
+	and ecx, 0xFFFF
+	mov [dirty_line], ecx
 
 	mov [.color], edx
 
@@ -261,6 +281,7 @@ move_cursor_graphics:
 	mov [x_cur], dl
 	mov [y_cur], dh
 	mov byte[cursor_moved], 1
+	mov dword[dirty_line], 0
 	call redraw_screen			; redraw the screen to show the new cursor
 
 	ret
@@ -506,9 +527,9 @@ put_char_cursor:
 	cmp al, 8
 	je .backspace
 
-	mov al, [y_cur]
-	cmp al, byte[y_cur_max]
-	jg .y_overflow
+	;mov al, [y_cur]
+	;cmp al, byte[y_cur_max]
+	;jg .y_overflow
 
 	mov al, [x_cur]
 	cmp al, byte[x_cur_max]
@@ -613,6 +634,8 @@ print_string_transparent:
 	mov [.x2], bx
 	mov [.y], cx
 	mov [.y2], cx
+	and ecx, 0xFFFF
+	mov [dirty_line], ecx
 
 .loop:
 	lodsb
@@ -668,6 +691,8 @@ print_string_graphics:
 	mov [.x2], bx
 	mov [.y], cx
 	mov [.y2], cx
+	and ecx, 0xFFFF
+	mov [dirty_line], ecx
 
 .loop:
 	lodsb
@@ -717,6 +742,10 @@ print_string_graphics_cursor:
 	pusha
 	mov [text_background], ecx
 	mov [text_foreground], edx
+
+	movzx eax, [y_cur]
+	shl eax, 4
+	mov [dirty_line], eax
 
 .loop:
 	lodsb
@@ -796,7 +825,8 @@ scroll_screen_graphics:
 
 .done:
 	mov byte[cursor_moved], 1
-	call redraw_screen		; not doing this saves A LOT of performance!
+	mov dword[dirty_line], 0
+	;call redraw_screen		; not doing this saves A LOT of performance!
 	popa
 	ret
 
@@ -856,9 +886,17 @@ clear_screen:
 	loop .24_work
 
 .done:
+	mov eax, [.color]
+	mov edi, scroll_screen_graphics.color
+	stosd
+	stosd
+	stosd
+	stosd
+
 	mov byte[x_cur], 0
 	mov byte[y_cur], 0
 
+	mov dword[dirty_line], 0
 	call redraw_screen
 	popa
 	ret
@@ -877,6 +915,7 @@ draw_horz_line:
 
 	and ecx, 0xFFFF
 	and edx, 0xFFFF
+	mov [dirty_line], edx
 	and esi, 0xFFFF
 
 	mov [.color], ebx
@@ -947,6 +986,9 @@ fill_rect:
 	mov [.y], dx
 	mov [.width], si
 	mov [.height], di
+
+	movzx edx, [.y]
+	mov [dirty_line], edx
 
 	movzx eax, word[.width]
 	mov ebx, [screen.bytes_per_pixel]
@@ -1059,6 +1101,7 @@ alpha_draw_horz_line:
 
 	and ecx, 0xFFFF
 	and edx, 0xFFFF
+	mov [dirty_line], edx
 	and esi, 0xFFFF
 
 	mov [.color], ebx
@@ -1134,6 +1177,9 @@ alpha_fill_rect:
 	mov [.y], dx
 	mov [.width], si
 	mov [.height], di
+
+	movzx edx, [.y]
+	mov [dirty_line], edx
 
 	movzx eax, word[.width]
 	mov ebx, [screen.bytes_per_pixel]
@@ -1297,6 +1343,7 @@ draw_image:
 display_bitmap_32bpp:
 	mov [.x], ebx
 	mov [.y], ecx
+	mov [dirty_line], ecx
 
 	mov esi, [bmp_location]
 	mov eax, bmp_width
@@ -1409,6 +1456,7 @@ display_bitmap_32bpp:
 display_bitmap_24bpp:
 	mov [.x], ebx
 	mov [.y], ecx
+	mov [dirty_line], ecx
 
 	mov esi, [bmp_location]
 	mov eax, bmp_width

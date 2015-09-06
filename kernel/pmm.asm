@@ -30,18 +30,11 @@ pmm_init:
 	mov esi, .debug_msg
 	call kdebug_print
 
-	mov eax, [total_memory_mb]
-	call int_to_string
-	call kdebug_print_noprefix
-
-	mov esi, .debug_msg2
-	call kdebug_print_noprefix
-
 	mov eax, [usable_memory_mb]
 	call int_to_string
 	call kdebug_print_noprefix
 
-	mov esi, .debug_msg3
+	mov esi, .debug_msg2
 	call kdebug_print_noprefix
 
 	mov dword[used_memory], 0
@@ -62,8 +55,7 @@ pmm_init:
 	ret
 
 .debug_msg			db "pmm: starting with ",0
-.debug_msg2			db " MB of RAM, ",0
-.debug_msg3			db " MB usable.",10,0
+.debug_msg2			db " MB of usable contiguous RAM.",10,0
 
 ; pmm_allocate_memory:
 ; Allocates physical memory
@@ -103,8 +95,8 @@ pmm_allocate_memory:
 	mul ebx
 	add eax, dword[.physical]
 
-	cmp eax, [usable_memory_bytes]
-	jge .too_little_memory
+	;cmp eax, [usable_memory_bytes]
+	;jge .too_little_memory
 
 	mov eax, [.physical]
 	mov ebx, 1024
@@ -193,8 +185,8 @@ pmm_free_memory:
 	mul ebx
 	add eax, dword[.physical]
 
-	cmp eax, [usable_memory_bytes]
-	jge .too_little_memory
+	;cmp eax, [usable_memory_bytes]
+	;jge .too_little_memory
 
 	mov eax, [.physical]
 	mov ebx, 1024

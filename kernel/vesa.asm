@@ -307,16 +307,12 @@ use32
 	mov [screen.height], eax
 
 	movzx eax, word[.width]
-	mov ebx, 8
-	mov edx, 0
-	div ebx
-	sub al, 2
+	shr eax, 3
+	sub al, 1
 	mov [x_cur_max], al
 
 	movzx eax, word[.height]
-	mov ebx, 16
-	mov edx, 0
-	div ebx
+	shr eax, 4
 	sub al, 1
 	mov [y_cur_max], al
 

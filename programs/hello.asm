@@ -25,19 +25,19 @@ main:
 	push eax
 
 	mov esi, string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	pop ebx
 	os_api int_to_string
 
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F00FF
 	os_api print_string_cursor
 
 	mov esi, string2
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
@@ -47,7 +47,7 @@ main:
 	os_api execute_program
 
 	mov esi, string3
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 

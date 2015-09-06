@@ -53,6 +53,9 @@ send_mouse_data:
 init_mouse:
 	cli
 
+	test word[hardware_bitflags], 4	; PS/2 pointing device
+	jz .no_mouse
+
 	; enable auxiliary mouse device
 	call wait_ps2_write
 	mov al, 0xA8
@@ -72,6 +75,9 @@ init_mouse:
 
 	cmp al, 0xAA
 	je .reset_finished
+
+	cmp al, 0xFC
+	je .no_mouse
 
 	jmp .wait_for_status
 
@@ -132,6 +138,12 @@ init_mouse:
 	call install_isr		; install mouse IRQ handler
 
 	ret
+
+.no_mouse:
+	mov esi, .no_mouse_msg
+	jmp draw_boot_error
+
+.no_mouse_msg				db "No PS/2 mouse device installed.",0
 
 ; mouse_irq:
 ; Mouse IRQ 12 handler
@@ -215,7 +227,7 @@ get_mouse_status:
 	cmp byte[mouse_irq.changed], 1
 	jne .wait_for_movement
 
-	cli
+	;cli
 	mov byte[mouse_irq.changed], 0
 
 .check_overflow:

@@ -251,6 +251,26 @@ execute_program:
 	mov ecx, 256
 	rep movsb
 
+	mov esi, program_path
+	call get_string_size
+	mov ecx, eax
+	mov esi, program_path
+	mov dl, ' '
+	call find_byte_in_string
+	jc .no_params
+
+	mov edi, esi
+	mov al, 0
+	stosb
+
+	push edi
+	jmp .load_program
+
+.no_params:
+	mov eax, 0
+	push eax
+
+.load_program:
 	mov esi, [program_name]
 	mov edi, 0x40000
 	call load_file
@@ -276,24 +296,6 @@ execute_program:
 
 	test dword[program_header.program_size], 0xFFF
 	jnz .corrupt
-
-	mov esi, program_path
-	call get_string_size
-	mov ecx, eax
-	mov esi, program_path
-	mov dl, ' '
-	call find_byte_in_string
-	jc .no_params
-
-	mov byte[.is_there_params], 1
-	inc esi
-	push esi
-	jmp .allocate_memory
-
-.no_params:
-	mov byte[.is_there_params], 0
-	mov eax, 0
-	push eax
 
 .allocate_memory:
 	mov eax, [program_header.program_size]
@@ -398,16 +400,19 @@ execute_program:
 	ret
 
 .not_found:
+	add esp, 4
 	mov eax, 0
 	mov ebx, 0xDEADBEEF
 	ret
 
 .corrupt:
+	add esp, 4
 	mov eax, 0
 	mov ebx, 0xBADC0DE
 	ret
 
 .too_little_memory:
+	add esp, 4
 	mov eax, 0
 	mov ebx, 0xFFFFFFFF
 	ret

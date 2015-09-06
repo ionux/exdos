@@ -30,11 +30,14 @@ file_header:
 main:
 	mov [my_pid], eax			; save the PID of the process
 
+	mov ebx, 0x000020
+	os_api clear_screen
+
 	mov esi, crlf
 	os_api print_string_cursor
 
 	mov esi, title_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x2020BF
 	os_api print_string_cursor
 
@@ -51,13 +54,13 @@ cmd:
 	os_api print_string_cursor
 
 	mov esi, prompt
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x209F20
 	os_api print_string_cursor
 
 	mov esi, input_buffer
 	mov ebx, 0xDFDF00
-	mov ecx, 0
+	mov ecx, 0x000020
 	os_api get_string
 
 	cmp byte[input_buffer], 0
@@ -156,7 +159,7 @@ cmd:
 	je mem_error_program
 
 	mov esi, bad_command
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x9F2020
 	os_api print_string_cursor
 
@@ -167,7 +170,7 @@ cmd:
 
 error_program:
 	mov esi, error_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x9F2020
 	os_api print_string_cursor
 
@@ -178,7 +181,7 @@ error_program:
 
 corrupt_program:
 	mov esi, corrupt_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x9F2020
 	os_api print_string_cursor
 
@@ -189,7 +192,7 @@ corrupt_program:
 
 mem_error_program:
 	mov esi, not_enough_mem_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x9F2020
 	os_api print_string_cursor
 
@@ -200,7 +203,7 @@ mem_error_program:
 
 help:
 	mov esi, help_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFF007F
 	os_api print_string_cursor
 
@@ -210,7 +213,7 @@ help:
 	jmp cmd
 
 clear:
-	mov ebx, 0
+	mov ebx, 0x000020
 	os_api clear_screen
 
 	jmp cmd
@@ -231,8 +234,8 @@ kdebug:
 	os_api kdebug_get_location		; get location of kernel debugger in EAX
 
 	mov esi, eax
-	mov ecx, 0
-	mov edx, 0xFFFFFF
+	mov ecx, 0x000020
+	mov edx, 0x0080C0
 	os_api print_string_cursor		; and print all debug messages :)
 
 	jmp cmd
@@ -262,50 +265,50 @@ meminfo:
 	mov [.used], eax
 
 	mov esi, .total_memory
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov ebx, [.total]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov esi, .mb
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov esi, .free_memory
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov ebx, [.free]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov esi, .mb
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov esi, .used_memory
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov ebx, [.used]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
 	mov esi, .mb
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
@@ -321,7 +324,7 @@ meminfo:
 
 time:
 	os_api get_time_string_12
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
@@ -331,7 +334,7 @@ time:
 
 date:
 	os_api get_long_date_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
@@ -352,7 +355,7 @@ dir:
 	os_api replace_byte_in_string
 
 	mov esi, [.tmp]
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F00FF
 	os_api print_string_cursor
 
@@ -363,7 +366,7 @@ dir:
 
 .error:
 	mov esi, .error_msg
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x9F2020
 	os_api print_string_cursor
 
@@ -384,56 +387,56 @@ sysinfo:
 	mov [.cpu_mhz], ecx
 
 	mov esi, .kernel_version
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
 	mov esi, [.kv]
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 	mov esi, crlf
 	os_api print_string_cursor
 
 	mov esi, .api_version
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
 	mov ebx, [.av]
 	os_api int_to_string
 	;mov esi, edi
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 	mov esi, crlf
 	os_api print_string_cursor
 
 	mov esi, .brand
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
 	mov esi, [.cpu_brand]
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 	mov esi, crlf
 	os_api print_string_cursor
 
 	mov esi, .speed
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
 	mov ebx, [.cpu_mhz]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
 	mov esi, .speed2
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x7F007F
 	os_api print_string_cursor
 
@@ -459,50 +462,50 @@ diskstat:
 	mov [.write], ecx
 
 	mov esi, .size_str
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov ebx, [.size]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov esi, .mb
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov esi, .read_str
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov ebx, [.read]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov esi, crlf
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov esi, .write_str
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov ebx, [.write]
 	os_api int_to_string
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
 	mov esi, crlf
-	mov ecx, 0
+	mov ecx, 0x000020
 	mov edx, 0x007FFF
 	os_api print_string_cursor
 
