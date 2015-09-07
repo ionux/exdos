@@ -483,15 +483,15 @@ init_acpi_power:
 	mov ecx, 4096
 	call vmm_unmap_memory
 
-	mov eax, [.fadt]
-	and eax, 0xFFFFF000
-	mov ecx, 1024
-	call vmm_unmap_memory
+	;mov eax, [.fadt]
+	;and eax, 0xFFFFF000
+	;mov ecx, 1024
+	;call vmm_unmap_memory
 
-	mov eax, [acpi_fadt.dsdt]
-	and eax, 0xFFFFF000
-	mov ecx, 512
-	call vmm_unmap_memory
+	;mov eax, [acpi_fadt.dsdt]
+	;and eax, 0xFFFFF000
+	;mov ecx, 512
+	;call vmm_unmap_memory
 
 	ret
 
