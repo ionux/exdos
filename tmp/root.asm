@@ -75,3 +75,17 @@ reserved2			dw 0
 				dw 2015
 				dw 0
 
+				db "heaptestexe"
+				db 0
+				dd 671
+				dd 1
+				dd 1*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
+
+
+

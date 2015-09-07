@@ -12,7 +12,7 @@
 
 use32
 
-os_api_max_function			= 50
+os_api_max_function			= 55
 
 is_syscall_executing			db 0
 
@@ -134,8 +134,14 @@ os_api_table:
 	dd load_file				; 48
 	dd write_file				; 49
 	dd delete_file				; 50
-	;dd copy_file				; 51
-	;dd rename_file				; 52
+	dd 0	;dd copy_file			; 51
+	dd 0	;dd rename_file			; 52
+	dd 0	;dd change_directory		; 53
+
+	; Memory management routines
+	dd malloc				; 54
+	dd free					; 55
+	dd 0	;dd realloc			; 56
 
 .int_to_string:
 	mov eax, ebx

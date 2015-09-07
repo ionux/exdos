@@ -38,8 +38,8 @@ vmm_init:
 	; first, let's clear the page directory and page tables
 	mov edi, page_directory
 	mov eax, 0
-	mov ecx, 1024
-	rep stosd
+	mov ecx, 4096
+	rep stosb
 
 	mov edi, page_table
 	mov eax, 0
@@ -79,6 +79,13 @@ vmm_init:
 	mov eax, 0x600000
 	mov ebx, 0x600000
 	mov ecx, 257				; 257*4 KB blocks = 1 MB + 4 KB
+	mov edx, 3				; present, read/write
+	call vmm_map_memory
+
+	; 10 MB of RAM, which is the location of the heap tables
+	mov eax, heap_table
+	mov ebx, heap_table
+	mov ecx, 257
 	mov edx, 3				; present, read/write
 	call vmm_map_memory
 
@@ -463,6 +470,175 @@ vmm_get_phys_address:
 .physical			dd 0
 .virtual			dd 0
 
+; vmm_get_free_page:
+; Gets location of a free virtual address
+; In\	EAX = Starting address
+; In\	ECX = Number of free pages
+; Out\	EFLAGS = Carry set on error
+; Out\	EAX = Free page location
 
+vmm_get_free_page:
+	mov [.address], eax
+	mov [.pages], ecx
 
+	mov dword[.tmp], 0
+
+	test dword[.address], 0xFFF
+	jnz .error
+
+	cmp dword[.pages], 0
+	je .error
+
+	; disable paging...
+	mov eax, cr0
+	and eax, 0x7FFFFFFF
+	mov cr0, eax
+
+	mov eax, 0
+	mov cr3, eax
+
+	mov eax, [.address]
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	;mov ebx, 4
+	;mov edx, 0
+	;div ebx
+
+	mov esi, page_table
+	add esi, eax
+	mov ecx, [.pages]
+
+.find_free_block:
+	mov eax, dword[esi]
+	cmp eax, 0
+	jne .find_another_block
+
+	add esi, 4
+	add dword[.tmp], 1
+	cmp ecx, dword[.tmp]
+	je .done
+
+	jmp .find_free_block
+
+.find_another_block:
+	mov dword[.tmp], 0
+	add dword[.address], 4096
+	add esi, 4
+	jmp .find_free_block
+
+.done:
+	; enable paging
+	mov eax, page_directory
+	mov cr3, eax
+
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+
+	mov eax, [.address]
+	clc
+	ret
+
+.error:
+	stc
+	mov eax, 0
+	ret
+
+.address			dd 0
+.pages				dd 0
+.tmp				dd 0
+
+heap_table			= 0xA00000
+heap_free_area			dd heap_table
+
+; The heap table is an array of QWORDS.
+; The low DWORD is the virtual address of allocated memory, and the high dword is size of allocated memory in pages.
+
+; malloc:
+; Allocates memory
+; In\	EDX = Bytes to allocate
+; Out\	EAX = Location of free memory, 0 on error
+
+malloc:
+	cmp edx, 0
+	je .error
+
+	mov eax, edx
+	mov ebx, 4096
+	call round_forward
+	mov ebx, 1024
+	mov edx, 0
+	div ebx
+	mov ebx, 4
+	mov edx, 0
+	div ebx
+	mov [.size], eax
+
+	mov eax, 0x1400000
+	mov ecx, [.size]
+	call pmm_find_free_block
+	jc .error
+
+	mov [.physical], eax
+	mov eax, 0x8000000
+	mov ecx, [.size]
+	call vmm_get_free_page
+	jc .error
+
+	mov [.virtual], eax
+
+	mov eax, [.physical]
+	mov ebx, [.virtual]
+	mov ecx, [.size]
+	mov edx, 7
+	call vmm_map_memory
+
+	mov edi, [heap_free_area]
+	mov eax, [.virtual]
+	stosd
+	mov eax, [.size]
+	stosd
+	mov [heap_free_area], edi
+
+	mov eax, [.virtual]
+	ret
+
+.error:
+	mov eax, 0
+	ret
+
+.size				dd 0
+.physical			dd 0
+.virtual			dd 0
+
+; free:
+; Frees allocated memory
+; In\	EDX = Allocated memory location
+; Out\	EAX = 0
+
+free:
+	mov [.memory], edx
+
+	mov eax, [.memory]
+	mov esi, heap_table
+
+.loop:
+	cmp eax, dword[esi]
+	je .found_memory
+
+	add esi, 8
+	cmp esi, heap_table+0x100000
+	jge .done
+
+.found_memory:
+	mov eax, dword[esi]
+	mov ecx, dword[esi+4]		; size in pages
+	call vmm_unmap_memory
+
+.done:
+	mov eax, 0			; return a null pointer
+	ret
+
+.memory				dd 0
 

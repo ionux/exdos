@@ -289,8 +289,8 @@ gpf_error:
 .return				dd 0
 
 page_error:
-	cli
-	hlt
+	;cli
+	;hlt
 
 	mov byte[draw_panic_screen.custom_exception], 1
 	mov esi, page_error_msg
