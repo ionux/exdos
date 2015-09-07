@@ -307,13 +307,17 @@ use32
 	mov [screen.height], eax
 
 	movzx eax, word[.width]
-	shr eax, 3
-	sub al, 1
+	mov ebx, 8
+	mov edx, 0
+	div ebx
+	sub eax, 1
 	mov [x_cur_max], al
 
 	movzx eax, word[.height]
-	shr eax, 4
-	sub al, 1
+	mov ebx, 16
+	mov edx, 0
+	div ebx
+	sub eax, 1
 	mov [y_cur_max], al
 
 	mov byte[x_cur], 0
@@ -340,9 +344,9 @@ use32
 	mov ebx, 64
 	mul ebx
 	mov ebx, 4
-	mov edx, 0
+	;mov edx, 0
 	div ebx
-	add eax, 1024
+	add eax, 1
 	mov [vga_memory], eax
 
 	mov eax, [screen.physical_buffer]

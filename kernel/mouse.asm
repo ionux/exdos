@@ -348,6 +348,7 @@ redraw_cursor:
 	cmp byte[is_mouse_visible], 1			; if the mouse is not visible --
 	jne .done					; -- just quit
 
+	mov dword[dirty_line], 0
 	call redraw_screen				; redraw the screen before drawing the cursor
 							; this is to make the cursor appear "on top" of all other objects
 

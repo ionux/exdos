@@ -96,20 +96,29 @@ init_cpuid:
 	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
-
 	ret
 
 .no_extended:
 	mov esi, .no_vendor_msg
-	jmp draw_boot_error
+	call kdebug_print
+
+	mov esi, no_cpu_brand
+	call get_string_size
+	mov ecx, eax
+	mov esi, no_cpu_brand
+	mov edi, cpu_brand
+	rep movsb
+
+	ret
 
 .debug_msg1			db "cpu: CPU brand is ",0
-.no_vendor_msg			db "CPU doesn't support CPUID extended functions.",0
+.no_vendor_msg			db "cpu: CPU doesn't support extended CPUID functions...",10,0
 .msg				db "ExDOS running on a '",0
 .msg2				db "' CPU.",13,10,0
 
 cpu_vendor:			times 13 db 0
 cpu_brand:			times 50 db 0
+no_cpu_brand			db "Unknown CPU.",0
 
 ; detect_cpu_speed:
 ; Detects CPU speed using TSC and PIT

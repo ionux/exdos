@@ -263,15 +263,44 @@ execute_program:
 	mov al, 0
 	stosb
 
+	mov esi, edi
+	push esi
+	call get_string_size
+	pop esi
+	mov ecx, eax
+	mov edi, program_params
+	rep movsb
+
+	mov edi, program_params
 	push edi
 	jmp .load_program
 
 .no_params:
 	mov eax, 0
 	push eax
+	jmp .load_program
 
 .load_program:
-	mov esi, [program_name]
+	mov esi, program_path
+	mov ecx, 11
+	mov dl, '.'
+	call find_byte_in_string
+	jc .no_extension
+
+	jmp .load_file
+
+.no_extension:
+	mov esi, program_path
+	call get_string_size
+	mov edi, program_path
+	add edi, eax
+	mov eax, ".exe"		; put the extension if the user didn't put it in
+	stosd
+	mov al, 0		; the filesystem driver only accepts ASCIIZ file names
+	stosb
+
+.load_file:
+	mov esi, program_path
 	mov edi, 0x40000
 	call load_file
 	cmp eax, 0
@@ -425,6 +454,7 @@ execute_program:
 .is_there_params		db 0
 
 program_path:			rb 256
+program_params:			rb 256
 
 ; panic_no_processes:
 ; Kernel panic when there are no processes
