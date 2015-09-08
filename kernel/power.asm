@@ -33,6 +33,8 @@ reboot:
 	mov al, 0xFE
 	out 0x64, al
 
+	call iowait
+
 	lidt [.idtr]				; if all failed, load an empty IDT and triple fault the CPU
 	int 0
 
