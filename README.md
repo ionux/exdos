@@ -14,6 +14,7 @@ Features
 - VESA 2.0 framebuffer driver.
 - Basic graphical routines (lines, squares, bitmap fonts, alpha blending, ...)
 - Physical/virtual memory management.
+- Heap management.
 - Custom file system.
 
 TO-DO
