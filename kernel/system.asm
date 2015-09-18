@@ -258,7 +258,7 @@ verify_enough_memory:
 
 	jmp $
 
-.too_little_msg			db "Boot error: Less than 32 MB of usable RAM was found.",0
+.too_little_msg			db "Boot error: Less than 64 MB of usable RAM was found.",0
 
 ; go32:
 ; Enters 32-bit mode

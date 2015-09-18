@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Friday, 4th September, 2015"
+define TODAY "Tuesday, 15th September, 2015"
 
 _kernel_version			db "ExDOS v0.1.0 pre-alpha built ", TODAY, 0
 _crlf				db 13,10,0
@@ -343,7 +343,6 @@ use32
 
 	mov esi, init_filename
 	call execute_program
-
 	jmp panic_no_processes
 
 init_filename			db "init.exe",0
@@ -379,6 +378,7 @@ include				"kernel/kdebug.asm"		; Kernel debugger
 include				"kernel/booterror.asm"		; Boot error UI
 include				"kernel/mouse.asm"		; PS/2 mouse driver
 include				"kernel/math.asm"		; Math routines
+include				"kernel/sound.asm"		; PC speaker driver
 
 db				"This program is property of Omar Mohammad.",0
 

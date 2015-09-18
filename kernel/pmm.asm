@@ -263,11 +263,11 @@ pmm_find_free_block:
 	mov ebx, 4
 	mov edx, 0
 	div ebx
-	push eax
-	cmp eax, [total_memory]
-	jge .error2
+	;push eax
+	;cmp eax, [total_memory]
+	;jge .error2
 
-	pop eax
+	;pop eax
 
 	mov esi, pmm_table
 	add esi, eax
@@ -292,7 +292,8 @@ pmm_find_free_block:
 
 	add dword[.pmm_table], 1
 	mov esi, [.pmm_table]
-	cmp esi, dword[.end_pmm_table]
+	;cmp esi, dword[.end_pmm_table]
+	cmp esi, end_of_pmm_table
 	jge .error
 	jmp .find_empty_blocks
 
@@ -302,7 +303,7 @@ pmm_find_free_block:
 	mov dword[.tmp_blocks], 0
 
 	mov esi, [.pmm_table]
-	cmp esi, dword[.end_pmm_table]
+	cmp esi, end_of_pmm_table
 	jge .error
 	jmp .find_empty_blocks
 

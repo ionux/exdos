@@ -167,6 +167,7 @@ internal_filename:
 	mov edi, new_filename+8
 	rep movsb
 
+	mov eax, 0
 	mov edi, new_filename
 	ret
 
@@ -178,6 +179,7 @@ internal_filename:
 	mov al, 0
 	stosb
 
+	mov eax, 1
 	mov edi, new_filename
 	ret
 
@@ -238,6 +240,7 @@ external_filename:
 	mov al, 0
 	stosb
 
+	mov eax, 0
 	mov edi, new_filename
 	ret
 
@@ -253,6 +256,7 @@ external_filename:
 	mov al, 0
 	stosb
 
+	mov eax, 0
 	mov edi, new_filename
 	ret
 
@@ -264,6 +268,7 @@ external_filename:
 	mov al, 0
 	stosb
 
+	mov eax, 1
 	mov edi, new_filename
 	ret
 
@@ -404,6 +409,8 @@ does_file_exist:
 ; Out\	ESI = Pointer to ASCIIZ string
 
 get_filenames_string:
+	mov eax, 1
+	ret
 	call load_root_directory
 	jc .error
 

@@ -15,6 +15,9 @@
 ; vmm_map_memory
 ; vmm_unmap_memory
 ; vmm_get_phys_address
+; vmm_get_free_page
+; malloc
+; free
 
 use32
 
@@ -62,6 +65,10 @@ vmm_init:
 	jmp .fill_directory
 
 .filled_directory:
+	;mov eax, cr4
+	;or eax, 0x80				; enable global paging
+	;mov cr4, eax
+
 	; identify page the first 1 MB of RAM, so that BIOS can work
 	mov eax, 0				; map 0x0 --
 	mov ebx, 0				; -- to 0x0
@@ -210,6 +217,18 @@ vmm_map_memory:
 	jmp .enable_paging
 
 .quit:
+	; Before quitting, we have to flush the TLB entries...
+	mov ecx, [.blocks]
+
+.flush_loop:
+	;invlpg [.physical]
+	;add dword[.physical], 4096
+	loop .flush_loop
+
+.finish:
+	mov eax, cr3
+	mov cr3, eax
+
 	popfd
 	popa
 	mov eax, 0
@@ -328,6 +347,9 @@ vmm_unmap_memory:
 	mov ecx, [.blocks]
 	call pmm_free_memory
 
+	mov eax, cr3
+	mov cr3, eax
+
 	popfd
 	mov eax, 0
 	ret
@@ -375,7 +397,7 @@ vmm_unmap_memory:
 .debug_msg1			db "vmm: freeing ",0
 .debug_msg2			db " blocks of virtual memory at address 0x",0
 .debug_msg3			db "vmm: alignment error.",10,0
-.debug_msg4			db "vmm: failed; there is no memory allocated at virtual address ",0
+.debug_msg4			db "vmm: failed; there is no memory allocated at virtual address 0x",0
 
 ; vmm_get_phys_address:
 ; Gets physical address of a virtual address
@@ -442,6 +464,9 @@ vmm_get_phys_address:
 	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
+
+	mov eax, page_directory
+	mov cr3, eax
 
 	jmp ebp
 
@@ -634,6 +659,9 @@ free:
 .found_memory:
 	mov eax, dword[esi]
 	mov ecx, dword[esi+4]		; size in pages
+	mov dword[esi], 0
+	mov dword[esi+4], 0
+	sub dword[heap_free_area], 8
 	call vmm_unmap_memory
 
 .done:

@@ -246,9 +246,21 @@ execute_program:
 	cmp byte[running_processes], maximum_processes
 	je .too_little_memory
 
-	mov esi, [program_name]
 	mov edi, program_path
 	mov ecx, 256
+	mov eax, 0
+	rep stosb
+
+	mov edi, program_params
+	mov ecx, 256
+	mov eax, 0
+	rep stosd
+
+	mov esi, [program_name]
+	call get_string_size
+	mov esi, [program_name]
+	mov edi, program_path
+	mov ecx, eax
 	rep movsb
 
 	mov esi, program_path
@@ -386,21 +398,13 @@ execute_program:
 	call enter_ring3
 
 .execute:
-	push .next
-	mov eax, [program_header.entry_point]
-	push eax
+	mov ebx, [program_header.entry_point]
 	movzx eax, [running_processes]
-	mov ebx, 0				; give program a clean state
-	mov ecx, 0
-	mov edx, 0
-	mov esi, 0
-	mov edi, 0
-	mov ebp, 0
-	ret
+	call ebx
 
 .next:
-	add esp, 4
 	call enter_ring0
+	add esp, 4
 	dec byte[running_processes]
 
 	cmp byte[running_processes], 0

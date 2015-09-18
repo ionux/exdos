@@ -191,6 +191,7 @@ mouse_irq:
 	mov byte[.status], 0
 	mov byte[.changed], 1
 
+	call get_mouse_status
 	call redraw_cursor
 	mov byte[.changed], 1
 
@@ -357,8 +358,8 @@ redraw_cursor:
 	mul ebx
 	mov [.size], eax
 
-	call get_mouse_status
-
+	mov eax, [mouse_x]
+	mov ebx, [mouse_y]
 	mov [.x], eax
 	mov [.y], ebx
 

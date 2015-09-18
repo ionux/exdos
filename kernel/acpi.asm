@@ -814,4 +814,3 @@ end_of_acpi_fadt:
 acpi_fadt_size			= end_of_acpi_fadt - acpi_fadt
 
 
-

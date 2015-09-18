@@ -344,7 +344,7 @@ put_char_transparent:
 	stosb
 
 .put_done:
-	add byte[.column], 1
+	inc byte[.column]
 	cmp byte[.column], 8
 	je .next_row
 
@@ -361,12 +361,12 @@ put_char_transparent:
 
 .next_row:
 	mov byte[.column], 0
-	add byte[.row], 1
+	inc byte[.row]
 	cmp byte[.row], 16
 	je .done
 
 	mov esi, [.font_data]
-	add esi, 1
+	inc esi
 	mov [.font_data], esi
 	mov al, byte[esi]
 	mov [.byte], al
@@ -454,7 +454,7 @@ put_char:
 	stosb
 
 .put_done:
-	add byte[.column], 1
+	inc byte[.column]
 	cmp byte[.column], 8
 	je .next_row
 
@@ -471,12 +471,12 @@ put_char:
 
 .next_row:
 	mov byte[.column], 0
-	add byte[.row], 1
+	inc byte[.row]
 	cmp byte[.row], 16
 	je .done
 
 	mov esi, [.font_data]
-	add esi, 1
+	inc esi
 	mov [.font_data], esi
 	mov al, byte[esi]
 	mov [.byte], al
