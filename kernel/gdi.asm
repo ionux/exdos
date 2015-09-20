@@ -834,6 +834,7 @@ scroll_screen_graphics:
 
 	jmp scroll_screen_avx
 
+align 32
 .color:			dq 0
 			dq 0
 			dq 0
@@ -910,8 +911,6 @@ scroll_screen_avx:
 	popa
 	ret
 
-align 32			; If the memory is not properly aligned, MOVDQA fails
-
 .end				dd 0
 .size_of_line			dd 0
 .size				dd 0
@@ -985,10 +984,6 @@ scroll_screen_sse:
 	popa
 	ret
 
-align 32			; If the memory is not properly aligned, MOVDQA fails
-
-.color				dq 0
-				dq 0
 .end				dd 0
 .size_of_line			dd 0
 .size				dd 0
