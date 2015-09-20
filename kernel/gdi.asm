@@ -13,6 +13,8 @@
 ;; Functions:
 ; get_pixel_offset
 ; redraw_screen
+; redraw_screen_sse
+; redraw_screen_avx
 ; redraw_text_cursor
 ; show_text_cursor
 ; hide_text_cursor
@@ -26,6 +28,8 @@
 ; print_string_graphics_cursor
 ; print_string_transparent
 ; scroll_screen_graphics
+; scroll_screen_graphics_sse
+; scroll_screen_graphics_avx
 ; clear_screen
 ; draw_horz_line
 ; fill_rect
@@ -81,6 +85,66 @@ get_pixel_offset:
 ; Redraws the screen
 
 redraw_screen:
+	cmp byte[is_avx_supported], 0
+	je redraw_screen_sse
+
+; redraw_screen_avx:
+; Redraws the screen using AVX
+
+redraw_screen_avx:
+	;pusha
+
+	mov eax, [screen.height]
+	mov ebx, [dirty_line]
+	sub eax, ebx
+	mov ebx, [screen.bytes_per_line]
+	mul ebx
+
+	mov ecx, eax
+	shr ecx, 8			; quick divide by 256
+
+	push ecx
+	mov eax, 0
+	mov ebx, [dirty_line]
+	call get_pixel_offset
+	pop ecx
+
+	mov esi, edi
+	mov edi, eax
+	add edi, dword[screen.virtual_buffer]
+
+.loop:
+	vmovdqu ymm0, [esi]
+	vmovdqa ymm1, [esi+32]
+	vmovdqa ymm2, [esi+64]
+	vmovdqa ymm3, [esi+96]
+	vmovdqa ymm4, [esi+128]
+	vmovdqa ymm5, [esi+160]
+	vmovdqa ymm6, [esi+192]
+	vmovdqa ymm7, [esi+224]
+	vmovdqu [edi], ymm0
+	vmovdqu [edi+32], ymm1
+	vmovdqu [edi+64], ymm2
+	vmovdqu [edi+96], ymm3
+	vmovdqu [edi+128], ymm4
+	vmovdqu [edi+160], ymm5
+	vmovdqu [edi+192], ymm6
+	vmovdqu [edi+224], ymm7
+
+	add esi, 256
+	add edi, 256
+	loop .loop
+
+	;mov byte[cursor_moved], 0
+	call redraw_text_cursor
+
+	;popa
+	ret
+
+; redraw_screen_sse:
+; Redraws the screen using SSE
+
+redraw_screen_sse:
 	;pusha
 
 	mov eax, [screen.height]
@@ -765,6 +829,97 @@ print_string_graphics_cursor:
 scroll_screen_graphics:
 	pusha
 
+	cmp byte[is_avx_supported], 0
+	je scroll_screen_sse
+
+	jmp scroll_screen_avx
+
+.color:			dq 0
+			dq 0
+			dq 0
+			dq 0
+
+; scroll_screen_avx:
+; Scrolls the screen using AVX
+
+scroll_screen_avx:
+	mov byte[x_cur], 0
+	mov al, [y_cur_max]
+	mov byte[y_cur], al
+
+	mov eax, [screen.bytes_per_line]
+	shl eax, 4			; multiply by 16
+	mov [.size_of_line], eax
+
+	mov eax, [screen.size]
+	sub eax, dword[.size_of_line]
+	mov [.size], eax
+
+	mov eax, 0
+	mov ebx, 16
+	call get_pixel_offset
+
+	mov esi, edi
+	mov edi, [screen.framebuffer]
+	mov ecx, [.size]
+	shr ecx, 8			; divide by 256
+
+.loop:
+	vmovdqu ymm0, [esi]
+	vmovdqa ymm1, [esi+32]
+	vmovdqa ymm2, [esi+64]
+	vmovdqa ymm3, [esi+96]
+	vmovdqa ymm4, [esi+128]
+	vmovdqa ymm5, [esi+160]
+	vmovdqa ymm6, [esi+192]
+	vmovdqa ymm7, [esi+224]
+	vmovdqu [edi], ymm0
+	vmovdqu [edi+32], ymm1
+	vmovdqu [edi+64], ymm2
+	vmovdqu [edi+96], ymm3
+	vmovdqu [edi+128], ymm4
+	vmovdqu [edi+160], ymm5
+	vmovdqu [edi+192], ymm6
+	vmovdqu [edi+224], ymm7
+
+	add esi, 256
+	add edi, 256
+	loop .loop
+
+	mov eax, 0
+	mov ebx, [screen.height]
+	sub ebx, 16
+	call get_pixel_offset
+
+	mov ecx, [.size_of_line]
+	shr ecx, 5
+
+.clear_last_line:
+	;movdqa xmm0, dqword[.color]
+	;movdqa [edi], xmm0
+	vmovdqu ymm0, qqword[scroll_screen_graphics.color]
+	vmovdqu [edi], ymm0
+
+	add edi, 32
+	loop .clear_last_line
+
+.done:
+	mov byte[cursor_moved], 1
+	mov dword[dirty_line], 0
+	call redraw_screen		; not doing this saves A LOT of performance!
+	popa
+	ret
+
+align 32			; If the memory is not properly aligned, MOVDQA fails
+
+.end				dd 0
+.size_of_line			dd 0
+.size				dd 0
+
+; scroll_screen_sse:
+; Scrolls the screen using SSE
+
+scroll_screen_sse:
 	mov byte[x_cur], 0
 	mov al, [y_cur_max]
 	mov byte[y_cur], al
@@ -817,7 +972,7 @@ scroll_screen_graphics:
 	shr ecx, 4
 
 .clear_last_line:
-	movdqa xmm0, dqword[.color]
+	movdqa xmm0, dqword[scroll_screen_graphics.color]
 	movdqa [edi], xmm0
 
 	add edi, 16
@@ -888,10 +1043,8 @@ clear_screen:
 .done:
 	mov eax, [.color]
 	mov edi, scroll_screen_graphics.color
-	stosd
-	stosd
-	stosd
-	stosd
+	mov ecx, 8
+	rep stosd
 
 	mov byte[x_cur], 0
 	mov byte[y_cur], 0

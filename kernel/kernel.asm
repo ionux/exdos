@@ -279,7 +279,7 @@ kmain32:
 	mov ah, 0x28
 	call remap_pic
 
-	call init_sse				; enable SSE
+	call init_sse_avx			; enable SSE or AVX, based on what is available on the CPU
 	call pmm_init				; initalize physical memory manager
 	call vmm_init				; start paging and virtual memory management
 	call init_pit				; set up PIT to 100 Hz
@@ -321,6 +321,7 @@ use32
 	call clear_screen
 
 	;call enable_mtrr_framebuffer		; at the moment this caused loss of performance, I don't know why...
+	call avx_debug				; for debugging...
 	call init_hdd				; initialize hard disk
 	call init_edd_info			; get EDD BIOS info
 	call detect_exdfs			; verify the partition is formatted with ExDFS
@@ -342,6 +343,28 @@ use32
 	mov esi, init_filename
 	call execute_program
 	jmp panic_no_processes
+
+avx_debug:
+	cmp byte[is_avx_supported], 1
+	je .avx
+
+	mov esi, .sse_msg
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
+	ret
+
+.avx:
+	mov esi, .avx_msg
+	mov ecx, 0
+	mov edx, 0xFFFFFF
+	call print_string_graphics_cursor
+
+	ret
+
+.sse_msg			db "CPU supports SSE; using it.",10,0
+.avx_msg			db "CPU supports AVX; using it.",10,0
 
 init_filename			db "init.exe",0
 

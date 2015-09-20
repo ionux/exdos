@@ -19,7 +19,7 @@
 ; go16
 ; remap_pic
 ; init_pit
-; init_sse
+; init_sse_avx
 ; delay_execution
 ; show_detected_hardware
 
@@ -520,16 +520,53 @@ init_pit:
 
 	ret
 
-; init_sse:
-; Enables SSE
+is_avx_supported			db 0
 
-init_sse:
-	cli
+; init_sse_avx:
+; Enables SSE or AVX, based on what is available on the CPU
+
+init_sse_avx:
+	mov eax, 1
+	cpuid
+
+	test ecx, 0x18000000		; make sure CPU supports AVX and XGETBV instructions
+	jz .try_sse
+
+	;test ecx, 0x1000
+	;jz .try_sse
+
+	mov eax, cr4
+	or eax, 0x40000
+	mov cr4, eax
+
+	mov ecx, 0
+	xgetbv
+
+	or eax, 6			; enable AVX
+	mov ecx, 0
+	xsetbv
+
+	; enable SSE as well ;)
+	mov eax, cr0
+	and eax, 0xFFFFFFFB
+	or eax, 2
+	mov cr0, eax
+
+	mov eax, cr4
+	or eax, 0x600
+	mov cr4, eax
+
+	mov byte[is_avx_supported], 1
+	mov esi, .avx_msg
+	call kdebug_print
+	ret
+
+.try_sse:
 	mov eax, 1
 	cpuid
 
 	test edx, 0x2000000
-	jz .no_sse
+	jz .no
 
 	mov eax, cr0
 	and eax, 0xFFFFFFFB
@@ -540,19 +577,24 @@ init_sse:
 	or eax, 0x600
 	mov cr4, eax
 
+	mov byte[is_avx_supported], 0
+	mov esi, .sse_msg
+	call kdebug_print
 	ret
 
-.no_sse:
+.no:
 	call go16
 
 use16
 
-	mov si, .no_sse_msg
+	mov si, .no_msg
 	call print_string_16
 
 	jmp $
 
-.no_sse_msg				db "Boot error: This CPU doesn't support SSE: Streaming SIMD extensions.",0
+.no_msg					db "Boot error: This CPU doesn't support AVX or SSE.",0
+.avx_msg				db "kernel: using AVX for graphics acceleration...",10,0
+.sse_msg				db "kernel: CPU doesn't support AVX, using SSE for graphics acceleration...",10,0
 
 use32
 
