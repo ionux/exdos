@@ -345,6 +345,77 @@ segmented_to_linear:
 
 	ret
 
+; enable_mtrr_framebuffer:
+; Enables write-combine MTRR for VESA framebuffer
+
+enable_mtrr_framebuffer:
+	mov eax, 1
+	cpuid
+
+	test edx, 0x1000	; does the CPU support MTRR?
+	jz .no			; if it doesn't no problem -- we'll lose some graphics performance but it's not a big problem.
+
+	mov ecx, 0xFE		; MTRRCAP
+	rdmsr
+
+	test eax, 0x400		; does the CPU support MTRR write combining?
+	jz .no_combine		; if not, that's fine.
+
+	mov ecx, 0x2FF		; MTRRdefType
+	rdmsr
+
+	and eax, 0xFFFFF7FF	; disable MTRR
+	wrmsr
+
+	mov esi, .debug_msg
+	call kdebug_print
+
+	mov ecx, 0x200
+	mov eax, [screen.physical_buffer]
+	and eax, 0xFFFFF000
+	or eax, 1
+	mov edx, 0
+	wrmsr			; enable write-combining
+
+	movzx eax, [vga_memory_64kb]
+	mov ebx, 64
+	mul ebx			; in KB
+	mov ebx, 1024
+	mul ebx			; in bytes
+
+	;mov ebx, 4096
+	;call round_forward
+
+	mov ecx, 0x201
+	mov edx, 0xF
+	not eax
+	and eax, 0xFFFFF000
+	or eax, 0x800
+	wrmsr
+
+	mov ecx, 0x2FF		; MTRRdefType
+	rdmsr
+
+	or eax, 0x800		; enable MTRR
+	wrmsr
+
+	jmp .done
+
+.no_combine:
+	mov esi, .debug_msg3
+	call kdebug_print
+	jmp .done
+
+.no:
+	mov esi, .debug_msg2
+	call kdebug_print
+
+.done:
+	ret
+
+.debug_msg			db "pmm: MTRR is available, enabling write-combine for VESA framebuffer...",10,0
+.debug_msg2			db "pmm: MTRR is not available...",10,0
+.debug_msg3			db "pmm: MTRR is available, but write-combining is not..",10,0
 
 
 

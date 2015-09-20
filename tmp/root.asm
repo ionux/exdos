@@ -5,8 +5,8 @@ entries				dd 511			; number of entries in directory
 filename			db "kernel  sys"
 reserved1			db 0
 lba_sector			dd 200
-size_sectors			dd 80
-size_bytes			dd 80*512
+size_sectors			dd 90
+size_bytes			dd 90*512
 time				db 8
 				db 53
 date				db 7
@@ -88,4 +88,38 @@ reserved2			dw 0
 				dw 0
 
 
+				db "cat     exe"
+				db 0
+				dd 672
+				dd 1
+				dd 1*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
 
+				db "imgview exe"
+				db 0
+				dd 673
+				dd 1
+				dd 1*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0
+
+				db "image   bmp"
+				db 0
+				dd 674
+				dd 2813
+				dd 2813*512
+				db 8
+				db 53
+				db 7
+				db 8
+				dw 2015
+				dw 0

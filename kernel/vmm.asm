@@ -65,10 +65,6 @@ vmm_init:
 	jmp .fill_directory
 
 .filled_directory:
-	;mov eax, cr4
-	;or eax, 0x80				; enable global paging
-	;mov cr4, eax
-
 	; identify page the first 1 MB of RAM, so that BIOS can work
 	mov eax, 0				; map 0x0 --
 	mov ebx, 0				; -- to 0x0
@@ -221,8 +217,8 @@ vmm_map_memory:
 	mov ecx, [.blocks]
 
 .flush_loop:
-	;invlpg [.physical]
-	;add dword[.physical], 4096
+	invlpg [.physical]			; invalidate the TLB entry..
+	add dword[.physical], 4096
 	loop .flush_loop
 
 .finish:
@@ -347,7 +343,7 @@ vmm_unmap_memory:
 	mov ecx, [.blocks]
 	call pmm_free_memory
 
-	mov eax, cr3
+	mov eax, cr3		; this is equivalent to INVLPG in 386 PCs -- ExDOS can't run on the 386 but this doesn't hurt either..
 	mov cr3, eax
 
 	popfd

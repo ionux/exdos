@@ -250,12 +250,6 @@ use32
 	mov esi, edd_drive_params.host_bus
 	call kdebug_print_noprefix
 
-	mov esi, .debug_msg4
-	call kdebug_print_noprefix
-
-	mov esi, edd_drive_params.interface_type
-	call kdebug_print_noprefix
-
 	mov esi, _crlf
 	call kdebug_print_noprefix
 
@@ -269,8 +263,7 @@ use32
 
 .debug_msg1				db "hdd: C/H/S ",0
 .debug_msg2				db "/",0
-.debug_msg3				db "hdd: host bus is ",0
-.debug_msg4				db ", interface type is ",0
+.debug_msg3				db "hdd: interface is ",0
 .msg					db "Detected EDD BIOS.",13,10,0
 
 ; edd_drive_params:
@@ -323,10 +316,10 @@ hdd_read_sectors:
 use16
 
 .read:
-	;mov ax, 0
-	;mov dl, [bootdisk]
-	;int 0x13
-	;jc .fail
+	mov ax, 0
+	mov dl, [bootdisk]
+	int 0x13
+	jc .fail
 
 	mov word[dap.segment], 0x4000
 	mov word[dap.offset], 0
@@ -547,19 +540,20 @@ use32
 .buffer			dd 0
 
 ; hdd_get_info:
-; Gets hard disk I/O stats
+; Gets hard disk information
 ; In\	Nothing
 ; Out\	EAX = Hard disk size in MB
 ; Out\	EBX = Number of sectors read since boot
 ; Out\	ECX = Number of sectors written since boot
+; Out\	EDX = Volume serial number
+; Out\	ESI = Volume label
 
 hdd_get_info:
 	mov eax, [disk_size_mb]
 	mov ebx, [diskstat.read]
 	mov ecx, [diskstat.write]
+	mov edx, [detect_exdfs.serial]
+	mov esi, detect_exdfs.volume_label
 	ret
-
-
-
 
 

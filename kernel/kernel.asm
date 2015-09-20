@@ -320,6 +320,7 @@ use32
 	mov ebx, 0
 	call clear_screen
 
+	;call enable_mtrr_framebuffer		; at the moment this caused loss of performance, I don't know why...
 	call init_hdd				; initialize hard disk
 	call init_edd_info			; get EDD BIOS info
 	call detect_exdfs			; verify the partition is formatted with ExDFS
@@ -337,9 +338,6 @@ use32
 	call init_mouse				; initialize PS/2 mouse
 
 	sti
-
-	mov ebx, 0
-	call clear_screen
 
 	mov esi, init_filename
 	call execute_program

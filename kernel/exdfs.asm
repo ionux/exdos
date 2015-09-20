@@ -22,6 +22,7 @@
 ; get_file_size
 ; write_file
 ; delete_file
+; copy_file
 
 use32
 
@@ -194,54 +195,44 @@ internal_filename:
 external_filename:
 	mov [.filename], esi
 	call get_string_size
-	mov [.size], eax
-	mov ecx, eax
-	cmp ecx, 11
-	jg .bad_filename
+	cmp eax, 11
+	jne .bad_filename
 
 	mov esi, [.filename]
-	mov ecx, [.size]
 	mov dl, ' '
+	mov ecx, 9
 	call find_byte_in_string
 	jc .no_spaces
 
 	mov esi, [.filename]
-	mov edi, new_filename
 	mov ecx, 0
-	mov edx, [.filename]
-	add edx, 8
+	mov edi, .bad_filename
 
 .loop:
 	lodsb
 	cmp al, ' '
-	je .found_space
-	stosb
+	je .space
 	inc ecx
 	cmp ecx, 8
-	jg .bad_filename
+	jge .do_extension
 	jmp .loop
 
-.found_space:
-	cmp esi, edx
-	je .found_extension
-	inc esi
-	jmp .found_space
+.space:
 
-.found_extension:
+.do_extension:
+	mov esi, [.filename]
+	add esi, 8
 	mov al, '.'
 	stosb
 
-	push esi
-	call get_string_size
-	pop esi
-	mov ecx, eax
+	mov ecx, 3
 	rep movsb
 
 	mov al, 0
 	stosb
 
-	mov eax, 0
 	mov edi, new_filename
+	mov eax, 0
 	ret
 
 .no_spaces:
@@ -253,11 +244,12 @@ external_filename:
 	stosb
 	mov ecx, 3
 	rep movsb
+
 	mov al, 0
 	stosb
 
-	mov eax, 0
 	mov edi, new_filename
+	mov eax, 0
 	ret
 
 .bad_filename:
@@ -273,7 +265,6 @@ external_filename:
 	ret
 
 .filename			dd 0
-.size				dd 0
 
 new_filename:			times 12 db 0
 
@@ -281,6 +272,11 @@ new_filename:			times 12 db 0
 ; Loads the root directory into RAM
 
 load_root_directory:
+	mov edi, disk_buffer
+	mov ecx, 32*512
+	mov eax, 0
+	rep stosb
+
 	mov eax, 1
 	add eax, dword[boot_partition.lba]
 	mov ebx, 32
@@ -409,14 +405,10 @@ does_file_exist:
 ; Out\	ESI = Pointer to ASCIIZ string
 
 get_filenames_string:
-	mov eax, 1
-	ret
 	call load_root_directory
 	jc .error
 
-	mov edi, disk_buffer
-	mov [.tmp], edi
-
+	mov [.tmp], 0x40000
 	mov esi, disk_buffer+32
 	mov ecx, 1
 
@@ -424,48 +416,44 @@ get_filenames_string:
 	cmp ecx, 512
 	je .done
 
-	cmp byte[esi], 0			; unused entry and no entries after are used...
+	cmp byte[esi], 0
 	je .done
 
-	cmp byte[esi], 0xAF			; deleted file
-	je .skip
+	cmp byte[esi], 0xAF
+	je .skip_entry
 
 	push esi
-	mov edi, .tmp_filename
-	mov ecx, 11
-	rep movsb
-	mov esi, .tmp_filename
-	call external_filename
-
-	mov esi, new_filename
-	call get_string_size
-
-	mov esi, new_filename
-	mov ecx, eax
 	mov edi, [.tmp]
+	mov ecx, 8
+	rep movsb
+	mov al, '.'
+	stosb
+	mov ecx, 3
 	rep movsb
 
 	mov al, ','
 	stosb
 
 	mov [.tmp], edi
+
 	pop esi
-	add esi, 32			; go to next entry
-	add ecx, 1
+	inc ecx
+	add esi, 32
 	jmp .loop
 
-.skip:
+.skip_entry:
+	inc ecx
 	add esi, 32
-	add ecx, 1
 	jmp .loop
 
 .done:
 	mov edi, [.tmp]
-	dec edi				; get rid of the last comma
-	mov byte[edi], 0		; null-terminated the string
+	dec edi
+	mov al, 0
+	stosb
 
 	mov eax, 0
-	mov esi, disk_buffer
+	mov esi, 0x40000
 	ret
 
 .error:
@@ -535,6 +523,8 @@ write_file:
 	mov [.buffer], edi
 	mov [.size], ecx
 	call internal_filename
+	cmp eax, 1
+	je .disk_error
 
 	mov eax, [boot_partition.lba]
 	add eax, dword[boot_partition.size]
@@ -837,3 +827,66 @@ delete_file:
 
 .lba				dd 0
 .size				dd 0
+
+; copy_file:
+; Copies a file
+; In\	ESI = Source filename
+; In\	EDI = Destination filename
+; Out\	EAX = Status (0 - success, 1 - disk error, 2 - source file not found, 3 - too little memory)
+; Note:	Overwrites destination file if it exists, creates it if it doesn't.
+
+copy_file:
+	mov [.source], esi
+	mov [.dest], edi
+
+	mov esi, [.source]
+	call get_file_size
+	cmp eax, 0
+	jne .file_not_found
+
+	; ECX contains size of source file in bytes...
+	; Allocate memory to load the source file into memory
+	mov [.size], ecx
+	mov edx, [.size]
+	call malloc
+
+	cmp eax, 0			; if malloc returns a null pointer --
+	je .memory_error		; -- then there isn't enough memory
+
+	mov [.memory], eax
+	mov esi, [.source]
+	mov edi, [.memory]
+	call load_file
+
+	cmp eax, 0
+	jne .file_not_found
+
+	; Now write that buffer into the new file :)
+	mov esi, [.dest]
+	mov edi, [.memory]
+	mov ecx, [.size]
+	call write_file
+
+	cmp eax, 0
+	jne .disk_error
+
+	mov eax, 0
+	ret
+
+.disk_error:
+	mov eax, 1
+	ret
+
+.file_not_found:
+	mov eax, 2
+	ret
+
+.memory_error:
+	mov eax, 3
+	ret
+
+.source				dd 0
+.dest				dd 0
+.memory				dd 0
+.size				dd 0
+

@@ -465,6 +465,11 @@ remap_pic:
 iowait:
 	pusha
 
+	nop
+	nop
+	nop
+	nop
+
 	jmp 8:.1
 
 .1:
@@ -484,6 +489,11 @@ iowait:
 	jmp 8:.3
 
 .3:
+	nop
+	nop
+	nop
+	nop
+
 	popa
 	ret
 

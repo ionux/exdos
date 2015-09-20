@@ -51,6 +51,8 @@ main:
 	mov edx, 0xFFFFFF
 	os_api print_string_cursor
 
+	int 0
+
 	os_api get_char_wait
 	ret
 

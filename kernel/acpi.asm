@@ -478,20 +478,23 @@ init_acpi_power:
 	mov edx, 0xFFFFFF
 	call print_string_graphics_cursor
 
+	mov esi, .debug_msg4
+	call kdebug_print
+
 	mov eax, [rsdt]
 	and eax, 0xFFFFF000
 	mov ecx, 4096
-	;call vmm_unmap_memory
+	call vmm_unmap_memory
 
 	mov eax, [.fadt]
 	and eax, 0xFFFFF000
 	mov ecx, 1024
-	;call vmm_unmap_memory
+	call vmm_unmap_memory
 
 	mov eax, [acpi_fadt.dsdt]
 	and eax, 0xFFFFF000
 	mov ecx, 512
-	;call vmm_unmap_memory
+	call vmm_unmap_memory
 
 	ret
 
@@ -524,6 +527,7 @@ init_acpi_power:
 .s5_signature			db "_S5_",0
 .debug_msg2			db "acpi: system is already in ACPI mode.",10,0
 .debug_msg3			db "acpi: system is not in ACPI mode, enabling ACPI...",10,0
+.debug_msg4			db "kernel: freeing unused memory...",10,0
 .irq_msg			db "acpi: using IRQ ",0
 .debug_msg5			db "acpi: checksum error...",10,0
 .no_fadt_msg			db "acpi: FADT not found.",10,0

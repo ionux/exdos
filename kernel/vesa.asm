@@ -86,6 +86,7 @@ screen:
 	.framebuffer		dd 0xC0000000
 	.virtual_buffer		dd 0xE0000000
 	.physical_buffer	dd 0
+	.back_buffer		dd 0
 	.is_graphics_mode	db 0
 	.size			dd 0
 
@@ -360,6 +361,9 @@ use32
 	call pmm_find_free_block
 	jc .no_memory
 
+	mov [screen.back_buffer], eax
+
+	mov eax, [screen.back_buffer]
 	mov ebx, [screen.framebuffer]
 	mov ecx, [vga_memory]
 	mov edx, 3

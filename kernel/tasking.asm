@@ -294,7 +294,7 @@ execute_program:
 
 .load_program:
 	mov esi, program_path
-	mov ecx, 11
+	mov ecx, 9
 	mov dl, '.'
 	call find_byte_in_string
 	jc .no_extension

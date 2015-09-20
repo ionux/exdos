@@ -42,7 +42,7 @@ use16
 	jne .no_pci
 
 	test al, 1			; make sure PCI supports the 32-bit I/O mechanism (port 0xCF8)
-	jz .no_pci
+	jz .no_pci_io
 
 	mov [.major], bh
 	mov [.minor], bl
@@ -85,7 +85,20 @@ use32
 
 	ret
 
+use16
+
+.no_pci_io:
+	call go32
+
+use32
+
+	mov esi, .no_pci_io_msg
+	call kdebug_print
+
+	ret
+
 .no_pci_msg			db "pci: PCI BIOS is not present, assuming PCI is not present either...",10,0
+.no_pci_io_msg			db "pci: PCI bus doesn't support 32-bit I/O port 0x0CF8...",10,0
 .debug_msg1			db "pci: PCI BIOS v",0
 .debug_msg2			db ".",0
 .debug_msg3			db " present.",10,0

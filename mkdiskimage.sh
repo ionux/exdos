@@ -15,6 +15,8 @@ fasm programs/hello.asm output/hello.exe
 fasm programs/draw.asm output/draw.exe
 fasm programs/hello2.asm output/hello2.exe
 fasm programs/heaptest.asm output/heaptest.exe
+fasm shell/cat.asm output/cat.exe
+fasm programs/imgview.asm output/imgview.exe
 echo Installing OS on disk image...
 dd if=output/mbr.sys conv=notrunc bs=512 count=1 of=exdos.img
 dd if=output/boot_hdd.sys conv=notrunc bs=512 seek=63 of=exdos.img
@@ -26,6 +28,9 @@ dd if=output/hello2.exe conv=notrunc bs=512 seek=602 of=exdos.img
 dd if=output/draw.exe conv=notrunc bs=512 seek=650 of=exdos.img
 dd if=output/echo.exe conv=notrunc bs=512 seek=670 of=exdos.img
 dd if=output/heaptest.exe conv=notrunc bs=512 seek=671 of=exdos.img
+dd if=output/cat.exe conv=notrunc bs=512 seek=672 of=exdos.img
+dd if=output/imgview.exe conv=notrunc bs=512 seek=673 of=exdos.img
+dd if=wallpaper.bmp conv=notrunc bs=512 seek=674 of=exdos.img
 echo Removing temporary files...
 rm -r output
 echo Finished. You can now run qemu-system-i386 exdos.img

@@ -10,98 +10,11 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; init_exceptions
+; draw_panic_screen
+
 use32
-
-exception_running			db 0
-
-; draw_panic_screen:
-; Draws the panic interface
-; In\	ESI = Error type
-; Out\	Nothing
-
-draw_panic_screen:
-	mov [.str], esi
-
-	mov ax, 0x10
-	mov ss, ax
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-
-	mov byte[is_program_running], 0
-
-	mov ax, 640
-	mov bx, 480
-	mov cl, 32
-	call set_vesa_mode
-
-	cmp eax, 0
-	jne .try_24bpp
-
-	jmp .vesa_done
-
-.try_24bpp:
-	mov ax, 640
-	mov bx, 480
-	mov cl, 24
-	call set_vesa_mode
-
-	cmp eax, 0
-	jne reboot
-
-.vesa_done:
-	mov ebx, 0x7F
-	call clear_screen
-
-	mov esi, .panic_title
-	mov bx, 288
-	mov cx, 160
-	mov edi, 0xC0C0C0
-	mov edx, 0x7F
-	call print_string_graphics
-
-	mov esi, .hint
-	mov bx, 32
-	mov cx, 192
-	mov edx, 0xFFFFFF
-	call print_string_transparent
-
-	mov esi, .error_type
-	mov bx, 32
-	mov cx, 256
-	mov edx, 0xFFFFFF
-	call print_string_transparent
-
-	mov esi, [.str]
-	mov bx, 128
-	mov cx, 256
-	mov edx, 0xFFFFFF
-	call print_string_transparent
-
-	mov esi, .reboot_msg
-	mov bx, 208
-	mov cx, 336
-	mov edx, 0xFFFFFF
-	call print_string_transparent
-
-	cmp byte[.custom_exception], 1
-	je .custom
-
-	call get_char_wait
-	call reboot
-
-.custom:
-	ret
-
-.custom_exception		db 0
-.str				dd 0
-.panic_title			db " ExDOS ",0
-.hint				db "An internal kernel error has occured and your PC must be rebooted.",13,10
-				db "Any information you were working on may be lost. We're sorry for any",13,10
-				db "inconvenience.",0
-.error_type			db "Error type: ",0
-.reboot_msg			db "Press any key to reboot.",0
 
 ; init_exceptions:
 ; Installs exception handlers into the IDT
@@ -197,229 +110,255 @@ init_exceptions:
 
 	ret
 
+; draw_panic_screen:
+; Draws the panic screen
+; In\	ESI = Message
+; Out\	Nothing
+
+draw_panic_screen:
+	mov [ss:.string], esi
+
+	push eax
+	mov eax, [ss:esp+4]
+	mov [ss:.return], eax
+	mov eax, [ss:esp+8]
+	mov [dump_registers.cs], ax
+	pop eax
+
+	mov [dump_registers.ds], ds
+	mov [dump_registers.es], es
+	mov [dump_registers.fs], fs
+	mov [dump_registers.gs], gs
+
+	pusha
+	mov esi, .debug_string_prefix
+	call kdebug_print
+	mov esi, [.string]
+	call kdebug_print_noprefix
+	mov esi, .debug_string_suffix
+	call kdebug_print_noprefix
+	mov eax, [.return]
+	call hex_dword_to_string
+	call kdebug_print_noprefix
+	mov esi, _crlf
+	call kdebug_print_noprefix
+	popa
+	call dump_registers
+
+	call hide_text_cursor
+	call hide_mouse_cursor
+
+	mov ebx, 0
+	mov cx, 0
+	mov dx, 0
+	mov esi, [screen.width]
+	mov edi, [screen.height]
+	call alpha_fill_rect
+	mov ebx, 0
+	mov cx, 0
+	mov dx, 0
+	mov esi, [screen.width]
+	mov edi, [screen.height]
+	call alpha_fill_rect
+
+	call get_screen_center
+	mov dx, cx
+	mov cx, bx
+	and edx, 0xFFFF
+	and ecx, 0xFFFF
+	sub edx, 56
+	sub ecx, 408/2
+	mov [.x], ecx
+	mov [.y], edx
+	mov esi, 408
+	mov edi, 112
+	mov ebx, 0x80
+	call alpha_fill_rect
+
+	mov esi, .panic_text1
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 17
+	add ecx, 33
+	mov edx, 0
+	call print_string_transparent
+
+	mov esi, .panic_text1
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 16
+	add ecx, 32
+	mov edx, 0xEFEFEF
+	call print_string_transparent
+
+	mov esi, [.string]
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 17
+	add ecx, 65
+	mov edx, 0
+	call print_string_transparent
+
+	mov esi, [.string]
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 16
+	add ecx, 64
+	mov edx, 0xEFEFEF
+	call print_string_transparent
+
+	call kdebug_dump
+	jc .error
+
+	mov esi, .panic_text2
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 17
+	add ecx, 49
+	mov edx, 0
+	call print_string_transparent
+
+	mov esi, .panic_text2
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 16
+	add ecx, 48
+	mov edx, 0xEFEFEF
+	call print_string_transparent
+
+	jmp .done
+
+.error:
+	mov esi, .panic_text3
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 17
+	add ecx, 49
+	mov edx, 0
+	call print_string_transparent
+
+	mov esi, .panic_text3
+	mov ebx, [.x]
+	mov ecx, [.y]
+	add ebx, 16
+	add ecx, 48
+	mov edx, 0xEFEFEF
+	call print_string_transparent
+
+.done:
+	call get_char_wait
+	call reboot
+
+.x				dd 0
+.y				dd 0
+.return				dd 0
+.string				dd 0
+.debug_string_prefix		db "kernel: ",0
+.debug_string_suffix		db " exception occured at EIP 0x",0
+.panic_text1			db "An unrecoverable error has occured.",0
+.panic_text2			db "Details have been saved in the kernel log file.",0
+.panic_text3			db "Failed to save details of the error...",0
+
 ;;
 ;; EXCEPTION HANDLERS
 ;;
 
 divide_error:
 	mov esi, divide_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 debug_error:
 	mov esi, debug_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 nmi_error:
 	mov esi, nmi_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 breakpoint_error:
 	mov esi, breakpoint_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 overflow_error:
 	mov esi, overflow_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 bound_error:
 	mov esi, bound_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 opcode_error:
-	mov byte[draw_panic_screen.custom_exception], 1
 	mov esi, opcode_error_msg
-	call draw_panic_screen
-
-	mov byte[x_cur], 4
-	mov byte[y_cur], 17
-
-	mov esi, .error_info
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	pop eax
-	call hex_dword_to_string
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	call get_char_wait
-	call reboot
-
-.error_info			db "EIP: ",0
+	jmp draw_panic_screen
 
 device_error:
 	mov esi, device_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 double_fault_error:
+	add esp, 4
 	mov esi, double_fault_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 coprocessor_segment_error:
 	mov esi, coprocessor_segment_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 tss_error:
+	add esp, 4
 	mov esi, tss_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 segment_error:
+	add esp, 4
 	mov esi, segment_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 stack_error:
+	add esp, 4
 	mov esi, stack_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 gpf_error:
-	pop ebp				; get rid of error code
-
-	cmp byte[ss:v8086_running], 1
-	je v8086_gpf_handler		; if we're running a v8086 task, give control to the v8086 monitor
-
-	pop ebp
-	push ebp
-	mov [ss:.return], ebp
-
+	add esp, 4
 	mov esi, gpf_error_msg
-	call draw_panic_screen
-
-.return				dd 0
+	jmp draw_panic_screen
 
 page_error:
-	;cli
-	;hlt
-
-	mov byte[draw_panic_screen.custom_exception], 1
+	add esp, 4
 	mov esi, page_error_msg
-	call draw_panic_screen
-
-	mov byte[x_cur], 4
-	mov byte[y_cur], 17
-
-	mov esi, .error_info
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	pop eax
-	mov [.error_code], eax
-
-.parse_error_code:
-	mov eax, [.error_code]
-	test eax, 4
-	jz .print_kernel
-
-	mov esi, .user
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	jmp .check_read_write
-
-.print_kernel:
-	mov esi, .kernel
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-.check_read_write:
-	mov eax, [.error_code]
-	test eax, 2
-	jz .print_read
-
-	mov esi, .write
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	jmp .check_error_type
-
-.print_read:
-	mov esi, .read
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-.check_error_type:
-	mov eax, [.error_code]
-	test eax, 1
-	jz .print_non_present
-
-	mov esi, .fault
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	jmp .done
-
-.print_non_present:
-	mov esi, .non_present
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-.done:
-	mov byte[x_cur], 4
-	add byte[y_cur], 1
-
-	mov esi, .virtual_address
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	mov eax, cr2
-	call hex_dword_to_string
-	mov ecx, 0x7F
-	mov edx, 0xFFFFFF
-	call print_string_graphics_cursor
-
-	call get_char_wait
-	call reboot
-
-.error_info			db "Details: ",0
-.kernel				db "Kernel ",0
-.user				db "User ",0
-.read				db "tried to read ",0
-.write				db "tried to write to ",0
-.non_present			db "a non-present page.",0
-.fault				db "a page and caused a protection fault.",0
-.virtual_address		db "Virtual address: ",0
-.error_code			dd 0
+	jmp draw_panic_screen
 
 reserved_error:
 	mov esi, reserved_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 fpu_error:
 	mov esi, fpu_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 alignment_error:
+	add esp, 4
 	mov esi, alignment_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 machine_error:
 	mov esi, machine_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 simd_error:
+	add esp, 4
 	mov esi, simd_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 virtualization_error:
 	mov esi, virtualization_error_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 security_error:
+	add esp, 4
 	mov esi, security_error_msg
-	call draw_panic_screen
-
-out_of_memory:
-	mov esi, out_of_memory_msg
-	call draw_panic_screen
+	jmp draw_panic_screen
 
 ;; 
 ;; ERROR MESSAGES

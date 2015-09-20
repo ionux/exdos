@@ -826,7 +826,7 @@ scroll_screen_graphics:
 .done:
 	mov byte[cursor_moved], 1
 	mov dword[dirty_line], 0
-	;call redraw_screen		; not doing this saves A LOT of performance!
+	call redraw_screen		; not doing this saves A LOT of performance!
 	popa
 	ret
 

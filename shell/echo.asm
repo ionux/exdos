@@ -32,8 +32,8 @@ main:
 	cmp esi, 0
 	je .quit
 
-	mov ecx, 0
-	mov edx, 0xFFFFFF
+	mov ecx, 0x000020
+	mov edx, 0x2020BF
 	os_api print_string_cursor
 
 	mov esi, crlf
