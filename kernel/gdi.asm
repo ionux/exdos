@@ -115,13 +115,13 @@ redraw_screen_avx:
 
 .loop:
 	vmovdqu ymm0, [esi]
-	vmovdqa ymm1, [esi+32]
-	vmovdqa ymm2, [esi+64]
-	vmovdqa ymm3, [esi+96]
-	vmovdqa ymm4, [esi+128]
-	vmovdqa ymm5, [esi+160]
-	vmovdqa ymm6, [esi+192]
-	vmovdqa ymm7, [esi+224]
+	vmovdqu ymm1, [esi+32]
+	vmovdqu ymm2, [esi+64]
+	vmovdqu ymm3, [esi+96]
+	vmovdqu ymm4, [esi+128]
+	vmovdqu ymm5, [esi+160]
+	vmovdqu ymm6, [esi+192]
+	vmovdqu ymm7, [esi+224]
 	vmovdqu [edi], ymm0
 	vmovdqu [edi+32], ymm1
 	vmovdqu [edi+64], ymm2
@@ -867,13 +867,13 @@ scroll_screen_avx:
 
 .loop:
 	vmovdqu ymm0, [esi]
-	vmovdqa ymm1, [esi+32]
-	vmovdqa ymm2, [esi+64]
-	vmovdqa ymm3, [esi+96]
-	vmovdqa ymm4, [esi+128]
-	vmovdqa ymm5, [esi+160]
-	vmovdqa ymm6, [esi+192]
-	vmovdqa ymm7, [esi+224]
+	vmovdqu ymm1, [esi+32]
+	vmovdqu ymm2, [esi+64]
+	vmovdqu ymm3, [esi+96]
+	vmovdqu ymm4, [esi+128]
+	vmovdqu ymm5, [esi+160]
+	vmovdqu ymm6, [esi+192]
+	vmovdqu ymm7, [esi+224]
 	vmovdqu [edi], ymm0
 	vmovdqu [edi+32], ymm1
 	vmovdqu [edi+64], ymm2
