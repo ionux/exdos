@@ -5,8 +5,8 @@ entries				dd 511			; number of entries in directory
 filename			db "kernel  sys"
 reserved1			db 0
 lba_sector			dd 200
-size_sectors			dd 90
-size_bytes			dd 90*512
+size_sectors			dd 100
+size_bytes			dd 100*512
 time				db 8
 				db 53
 date				db 7

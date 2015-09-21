@@ -122,13 +122,19 @@ draw_panic_screen:
 	mov eax, [ss:esp+4]
 	mov [ss:.return], eax
 	mov eax, [ss:esp+8]
-	mov [dump_registers.cs], ax
+	mov [ss:dump_registers.cs], ax
 	pop eax
 
-	mov [dump_registers.ds], ds
-	mov [dump_registers.es], es
-	mov [dump_registers.fs], fs
-	mov [dump_registers.gs], gs
+	mov [ss:dump_registers.ds], ds
+	mov [ss:dump_registers.es], es
+	mov [ss:dump_registers.fs], fs
+	mov [ss:dump_registers.gs], gs
+
+	mov ax, 0x10			; fix segment registers
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
 
 	pusha
 	mov esi, .debug_string_prefix
@@ -321,6 +327,10 @@ stack_error:
 
 gpf_error:
 	add esp, 4
+
+	cmp byte[ss:v8086_running], 1			; if a v8086 task is running --
+	je v8086_monitor				; -- it's likely the GPF really isn't an error
+
 	mov esi, gpf_error_msg
 	jmp draw_panic_screen
 

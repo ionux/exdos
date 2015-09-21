@@ -88,6 +88,8 @@ redraw_screen:
 	cmp byte[is_avx_supported], 0
 	je redraw_screen_sse
 
+	jmp redraw_screen_avx
+
 ; redraw_screen_avx:
 ; Redraws the screen using AVX
 
@@ -886,14 +888,6 @@ scroll_screen_avx:
 	add esi, 256
 	add edi, 256
 	loop .loop
-
-	mov eax, 0
-	mov ebx, [screen.height]
-	sub ebx, 16
-	call get_pixel_offset
-
-	mov ecx, [.size_of_line]
-	shr ecx, 5
 
 .clear_last_line:
 	mov ebx, [scroll_screen_graphics.color]

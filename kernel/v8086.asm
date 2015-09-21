@@ -10,261 +10,484 @@
 ;;									;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Functions:
+; run_v8086
+
 use32
 
 v8086_running			db 0
 
 ; run_v8086:
 ; Runs some 16-bit code
-; In\	EAX = Code offset (must be below 1 MB)
+; In\	CX:DX = Segment:Offset
 ; Out\	Nothing
+; Note:	To quit the v8086 task, the 16-bit task must call end_v8086 and pass its return value in EAX.
 
 run_v8086:
-	call text_mode
-
-	cli
+	mov [.segment], cx
+	mov [.offset], dx
 
 	mov byte[v8086_running], 1
 
-	push 0			; SS = 0
+	mov eax, 0
+	mov ebx, 0
+	mov ecx, 256
+	mov edx, 7				; user, present, read/write
+	call vmm_map_memory
+
+	mov esi, .debug_msg1
+	call kdebug_print
+
+	mov ax, [.segment]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, .debug_msg2
+	call kdebug_print_noprefix
+
+	mov ax, [.offset]
+	call hex_word_to_string
+	call kdebug_print_noprefix
+
+	mov esi, _crlf
+	call kdebug_print_noprefix
+
+	cli
+	mov ebp, esp
+	push 0			; SS
+	push ebp		; ESP
+	pushfd
+	pop eax
+	or eax, 0x20202		; VM | IF | PF
+	push eax
+	push 0			; CS
+	push .next		; EIP
+	iret
+
+use16
+
+.next:
+	; Welcome to v8086 mode!
+	mov ax, 0
+	;mov ss, ax		; IRET did this for us
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	jmp $
+
+.segment			dw 0
+.offset				dw 0
+.debug_msg1			db "v8086: creating 16-bit task at segment:offset 0x",0
+.debug_msg2			db ":0x",0
+
+; v8086_debug_print:
+; Test routine for I/O functions in v8086 mode, prints a string to the Bochs console using port 0xE9 hack
+; In\	DS:SI = ASCIIZ string
+; Out\	Nothing
+
+v8086_debug_print:
+	lodsb
+	cmp al, 0
+	je .done
+	out 0xE9, al
+	jmp v8086_debug_print
+
+.done:
+	ret
+
+;; V8086 MONITOR CORE
+
+use32
+
+; v8086_monitor:
+; v8086 monitor entry point
+
+v8086_monitor:
+	push ebp
+
 	mov ebp, esp
 	add ebp, 4
-	push ebp		; ESP, and fix stack
-	pushfd
-	pop ebp
-	or ebp, 0x20202		; EFLAGS = v8086 | interrupts
+
+	push ds
+	push es
+	push fs
+	push gs
+
+	push 0x10		; fix segment registers without playing with general purpose registers
+	pop ds
+	push ds
+	pop es
+	push es
+	pop fs
+	push fs
+	pop gs
+
 	push ebp
-	push 0			; CS = 0
-	lea ebp, [.next]
-	push ebp		; v8086 stub
-	iretd
-
-use16			; we're in v8086 mode now! :)
-
-.next:
-	mov ax, 0
-	;mov ss, ax		; IRETD did this for us
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-
-	nop
-	nop
-	nop
-	nop
-
-	mov ax, 0x80
-	mov bx, 4
-	mul bx
-	mov di, ax
-	mov ax, .nexta
-	stosw
-	mov ax, 0
-	stosw
-
-	int 0x80
-	jmp $
-
-.nexta:
-	iret
-	jmp $
-
-;;
-;; ExDOS v8086 monitor core functions
-;;
-
-use32
-
-; v8086_gpf_handler:
-; Default GPF handler for v8086
-
-v8086_gpf_handler:
-	mov bp, 0x10
-	mov ds, bp
-	mov es, bp
-	mov fs, bp
-	mov gs, bp
-
-	pop ebp
-	mov [.return], ebp
-	pop ebp
-	mov [.cs], ebp
-	pop ebp
-	mov [.eflags], ebp
-	pop ebp
-	mov [.esp], ebp
-	pop ebp
-	mov [.ss], ebp
-
-	mov ebp, [.return]
-	cmp byte[ebp], 0xCD		; INT
-	je v8086_do_int
+	mov ebp, [esp+24]
 
 	cmp byte[ebp], 0xFA		; CLI
-	je v8086_do_cli
+	je v8086_cli
 
 	cmp byte[ebp], 0xFB		; STI
-	je v8086_do_sti
+	je v8086_sti
 
-	cmp byte[ebp], 0xCF
-	je v8086_do_iret
+	cmp byte[ebp], 0xF4		; HLT
+	je v8086_hlt
 
-	mov byte[v8086_running], 0
-	int 13				; make a real GPF
+	cmp byte[ebp], 0xE6		; OUT imm8, AL
+	je v8086_out_imm8_al
 
-.return				dd 0
-.cs				dd 0
-.eflags				dd 0
-.esp				dd 0
-.ss				dd 0
+	cmp byte[ebp], 0xE7		; OUT imm8, AX
+	je v8086_out_imm8_ax
 
-; v8086_gpf_return:
-; Returns from the v8086 GPF handler
+	cmp word[ebp], 0xE766		; OUT imm8, EAX
+	je v8086_out_imm8_eax
 
-v8086_gpf_return:
-	mov eax, [v8086_gpf_handler.ss]
-	push eax
-	mov eax, [v8086_gpf_handler.esp]
-	push eax
-	mov eax, [v8086_gpf_handler.eflags]
-	push eax
-	mov eax, [v8086_gpf_handler.cs]
-	push eax
-	mov eax, [v8086_gpf_handler.return]
-	push eax
+	cmp byte[ebp], 0xE4		; IN AL, imm8
+	je v8086_in_imm8_al
 
-	iretd
+	cmp byte[ebp], 0xE5		; IN AX, imm8
+	je v8086_in_imm8_ax
 
-; v8086_do_cli:
-; Emulates a CLI instruction
+	cmp word[ebp], 0xE566		; IN EAX, imm8
+	je v8086_in_imm8_eax
 
-v8086_do_cli:
-	mov eax, [v8086_gpf_handler.eflags]
-	and eax, 0xFFFFFDFF			; clear IF flag
-	or eax, 2
-	mov [v8086_gpf_handler.eflags], eax
-	add dword[v8086_gpf_handler.return], 1	; CLI instruction is 1 byte in size
+	cmp byte[ebp], 0xEE		; OUT DX, AL
+	je v8086_out_dx_al
 
-	jmp v8086_gpf_return
+	cmp byte[ebp], 0xEF		; OUT DX, AX
+	je v8086_out_dx_ax
 
-; v8086_do_sti:
-; Emulates a STI instruction
+	cmp word[ebp], 0xEF66		; OUT DX, EAX
+	je v8086_out_dx_eax
 
-v8086_do_sti:
-	mov eax, [v8086_gpf_handler.eflags]
-	or eax, 0x202
-	mov [v8086_gpf_handler.eflags], eax
-	add dword[v8086_gpf_handler.return], 1
+	cmp byte[ebp], 0xEC		; IN AL, DX
+	je v8086_in_al_dx
 
-	jmp v8086_gpf_return
+	cmp byte[ebp], 0xED		; IN AX, DX
+	je v8086_in_ax_dx
 
-; v8086_do_int:
-; Raises an interrupt in v8086 mode
+	cmp word[ebp], 0xED66		; IN EAX, DX
+	je v8086_in_eax_dx
 
-v8086_do_int:
-	;mov [.stack], esp
-	pusha
-	cli
+	cmp byte[ebp], 0x6C		; INSB
+	je v8086_insb
 
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+	cmp word[ebp], 0x6CF3		; REP INSB
+	je v8086_rep_insb
 
-	;mov [.return], ebp
-	add ebp, 1
-	mov al, byte[ebp]
+	cmp byte[ebp], 0x6D		; INSW
+	je v8086_insw
 
-	and eax, 0xFF
-	mov ebx, 4
-	mul ebx
+	cmp word[ebp], 0x6DF3		; REP INSW
+	je v8086_rep_insw
 
-	mov ebp, eax
-	mov ax, word[ebp]
-	and eax, 0xFFFF
-	mov [.offset], eax
-	mov ax, word[ebp+2]
-	and eax, 0xFFFF
-	mov [.segment], eax
+	cmp byte[ebp], 0x6E		; OUTSB
+	je v8086_outsb
 
-	;mov ax, 0
-	;mov ds, ax
-	;mov es, ax
-	;mov fs, ax
-	;mov gs, ax
+	cmp word[ebp], 0x6EF3		; REP OUTSB
+	je v8086_rep_outsb
 
-	mov eax, [v8086_gpf_handler.ss]
-	mov [.ss], eax
-	mov eax, [v8086_gpf_handler.esp]
-	mov [.esp], eax
-	mov eax, [v8086_gpf_handler.cs]
+	cmp byte[ebp], 0x6F		; OUTSW
+	je v8086_outsw
 
-	popa
-	push dword[v8086_gpf_handler.ss]
-	push dword[v8086_gpf_handler.esp]
-	push dword[v8086_gpf_handler.eflags]
-	push dword[v8086_gpf_handler.cs]
-	push dword[v8086_gpf_handler.return]
-
-	push dword[v8086_gpf_handler.ss]
-	push dword[v8086_gpf_handler.esp]
-	sub dword[esp], 20
-	push dword[v8086_gpf_handler.eflags]
-	push 0
-	push .next
-	iretd
-
-use16
-
-.next:
-	pusha
-	mov ax, 0
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-
-	popa
-	push word[.segment]
-	push word[.offset]
-	retf
-
-.offset				dd 0
-.segment			dd 0
-.ss				dd 0
-.esp				dd 0
-.eflags				dd 0
-.cs				dd 0
-.eip				dd 0
-
-use32
-
-; v8086_do_iret:
-; Emulates an IRET instruction
-
-v8086_do_iret:
-	mov [.backup_esp], esp
-	pusha
-	mov esp, [v8086_gpf_handler.esp]
+	cmp word[ebp], 0x6FF3		; REP OUTSW
+	je v8086_rep_outsw
 
 	pop ebp
-	;mov [.eip], ebp
-	pop eax
-	jmp $
-	iretd
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	pop ebp
+	mov byte[ss:v8086_running], 0
+	int 13			; make a real GPF
 
-use16
+; v8086_return_to_task:
+; Quits the monitor and returns to the 16-bit task
 
-.next:
-	jmp $
+v8086_return_to_task:
+	pop gs
+	pop fs
+	pop es
+	pop ds
+	pop ebp
+	iret
 
-.backup_esp			dd 0
-.ss				dd 0
-.esp				dd 0
-.eflags				dd 0
-.cs				dd 0
-.eip				dd 0
+; v8086_cli:
+; Emulates CLI instruction
+
+v8086_cli:
+	pop ebp
+	add dword[ss:ebp], 1		; CLI instruction is 1 byte in size
+	and dword[ss:ebp+8], 0xFFFFFDFF	; clear IF
+	jmp v8086_return_to_task
+
+; v8086_sti:
+; Emulates STI instruction
+
+v8086_sti:
+	pop ebp
+	add dword[ss:ebp], 1
+	or dword[ss:ebp+8], 0x200
+	jmp v8086_return_to_task
+
+; v8086_hlt:
+; Emulates HLT instruction
+
+v8086_hlt:
+	pop ebp
+	add dword[ss:ebp], 1
+	hlt
+	jmp v8086_return_to_task
+
+; v8086_out_imm8_al:
+; Emulates OUT instruction (out imm8, al)
+
+v8086_out_imm8_al:
+	push edx
+	mov dl, byte[ebp+1]
+	and dx, 0xFF
+	out dx, al			; do the I/O requested
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_out_imm8_ax:
+; Emulates OUT instruction (out imm8, ax)
+
+v8086_out_imm8_ax:
+	push edx
+	mov dl, byte[ebp+1]
+	and dx, 0xFF
+	out dx, ax			; do the I/O requested
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_out_imm8_eax:
+; Emulates OUT instruction (out imm8, eax)
+
+v8086_out_imm8_eax:
+	push edx
+	mov dl, byte[ebp+2]
+	and dx, 0xFF
+	out dx, eax			; do the I/O requested
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 3
+	jmp v8086_return_to_task
+
+; v8086_in_imm8_al:
+; Emulates IN instruction (in al, imm8)
+
+v8086_in_imm8_al:
+	push edx
+	mov dl, byte[ebp+1]
+	and dx, 0xFF
+	in al, dx
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_in_imm8_ax:
+; Emulates IN instruction (in ax, imm8)
+
+v8086_in_imm8_ax:
+	push edx
+	mov dl, byte[ebp+1]
+	and dx, 0xFF
+	in ax, dx
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_in_imm8_eax:
+; Emulates IN instruction (in eax, imm8)
+
+v8086_in_imm8_eax:
+	push edx
+	mov dl, byte[ebp+1]
+	and dx, 0xFF
+	in eax, dx
+	call iowait
+	pop edx
+
+	pop ebp
+	add dword[ss:ebp], 3
+	jmp v8086_return_to_task
+
+; v8086_out_dx_al:
+; Emulates OUT instruction (out dx, al)
+
+v8086_out_dx_al:
+	out dx, al
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_out_dx_ax:
+; Emulates OUT instruction (out dx, ax)
+
+v8086_out_dx_ax:
+	out dx, ax
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_out_dx_eax:
+; Emulates OUT instruction (out dx, eax)
+
+v8086_out_dx_eax:
+	out dx, eax
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_in_al_dx:
+; Emulates IN instruction (in al, dx)
+
+v8086_in_al_dx:
+	in al, dx
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_in_ax_dx:
+; Emulates IN instruction (in ax, dx)
+
+v8086_in_ax_dx:
+	in ax, dx
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_in_eax_dx:
+; Emulates IN instruction (in eax, dx)
+
+v8086_in_eax_dx:
+	in eax, dx
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_insb:
+; Emulates INSB instruction
+
+v8086_insb:
+	insb
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_rep_insb:
+; Emulates INSB instruction with REP prefix
+
+v8086_rep_insb:
+	rep insb
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_insw:
+; Emulates INSW instruction
+
+v8086_insw:
+	insw
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_rep_insw:
+; Emulates INSW instruction with REP prefix
+
+v8086_rep_insw:
+	rep insw
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_outsb:
+; Emulates OUTSB instruction
+
+v8086_outsb:
+	outsb
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_rep_outsb:
+; Emulates OUTSB instruction with REP prefix
+
+v8086_rep_outsb:
+	rep outsb
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+; v8086_outsw:
+; Emulates OUTSW instruction
+
+v8086_outsw:
+	outsw
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 1
+	jmp v8086_return_to_task
+
+; v8086_rep_outsw:
+; Emulates OUTSW instruction with REP prefix
+
+v8086_rep_outsw:
+	rep outsw
+	call iowait
+
+	pop ebp
+	add dword[ss:ebp], 2
+	jmp v8086_return_to_task
+
+
+
 
 

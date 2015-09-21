@@ -340,6 +340,8 @@ use32
 
 	sti
 
+	;call run_v8086				; for debugging...
+
 	mov esi, init_filename
 	call execute_program
 	jmp panic_no_processes
@@ -406,6 +408,7 @@ db				"This program is property of Omar Mohammad.",0
 align 4096			; stack will be in its own page so we can map it as read/write
 
 stack_area:			rb stack_size			; 4 KB of stack space
+kstack_area:			rb 256
 
 align 32
 

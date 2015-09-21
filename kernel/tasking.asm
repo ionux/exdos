@@ -63,14 +63,14 @@ tss:
 ; Loads the task state segment
 
 load_tss:
-	mov eax, stack_area+stack_size
+	mov eax, kstack_area+256
 	mov dword[tss.esp0], eax
 	mov dword[tss.esp], eax
 
 	pushfd
 	pop eax
-	;or eax, 0x202			; interrupts are always enabled
-	or eax, 2
+	or eax, 0x202			; interrupts are always enabled
+	;or eax, 2
 	mov dword[tss.eflags], eax
 
 	mov eax, 0x3B			; RPL 3
