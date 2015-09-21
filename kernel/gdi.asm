@@ -896,13 +896,13 @@ scroll_screen_avx:
 	shr ecx, 5
 
 .clear_last_line:
-	;movdqa xmm0, dqword[.color]
-	;movdqa [edi], xmm0
-	vmovdqu ymm0, qqword[scroll_screen_graphics.color]
-	vmovdqu [edi], ymm0
-
-	add edi, 32
-	loop .clear_last_line
+	mov ebx, [scroll_screen_graphics.color]
+	mov ecx, 0
+	mov edx, [screen.height]
+	sub edx, 16
+	mov esi, [screen.width]
+	mov edi, 16
+	call fill_rect
 
 .done:
 	mov byte[cursor_moved], 1
@@ -971,11 +971,13 @@ scroll_screen_sse:
 	shr ecx, 4
 
 .clear_last_line:
-	movdqa xmm0, dqword[scroll_screen_graphics.color]
-	movdqa [edi], xmm0
-
-	add edi, 16
-	loop .clear_last_line
+	mov ebx, [scroll_screen_graphics.color]
+	mov ecx, 0
+	mov edx, [screen.height]
+	sub edx, 16
+	mov esi, [screen.width]
+	mov edi, 16
+	call fill_rect
 
 .done:
 	mov byte[cursor_moved], 1

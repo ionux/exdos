@@ -358,13 +358,15 @@ enable_mtrr_framebuffer:
 	mov ecx, 0xFE		; MTRRCAP
 	rdmsr
 
-	test eax, 0x400		; does the CPU support MTRR write combining?
-	jz .no_combine		; if not, that's fine.
+	test eax, 0x400		; does the CPU support write-combining?
+	jz .no_combine		; if not, it's okay also
 
-	mov ecx, 0x2FF		; MTRRdefType
+	mov ecx, 0x2FF		; MTRRDEFTYPE
 	rdmsr
 
-	and eax, 0xFFFFF7FF	; disable MTRR
+	and eax, 0xFFFFF7FF	; disable MTRRs
+	mov al, 0		; set default type to uncached
+	mov ecx, 0x2FF
 	wrmsr
 
 	mov esi, .debug_msg
@@ -373,30 +375,28 @@ enable_mtrr_framebuffer:
 	mov ecx, 0x200
 	mov eax, [screen.physical_buffer]
 	and eax, 0xFFFFF000
-	or eax, 1
+	or eax, 6		; write-combine
 	mov edx, 0
-	wrmsr			; enable write-combining
-
-	movzx eax, [vga_memory_64kb]
-	mov ebx, 64
-	mul ebx			; in KB
-	mov ebx, 1024
-	mul ebx			; in bytes
-
-	;mov ebx, 4096
-	;call round_forward
-
-	mov ecx, 0x201
-	mov edx, 0xF
-	not eax
-	and eax, 0xFFFFF000
-	or eax, 0x800
 	wrmsr
 
-	mov ecx, 0x2FF		; MTRRdefType
-	rdmsr
+	movzx eax, [vga_memory_64kb]
+	mov ebx, 64		; KB
+	mul ebx
+	mov ebx, 1024		; bytes
+	mul ebx
 
+	mov ecx, 0x201
+	not eax
+	not edx
+	and edx, 0xF
+	and eax, 0xFFFFF000	; mask
+	or eax, 0x800		; valid
+	wrmsr
+
+	mov ecx, 0x2FF
+	rdmsr
 	or eax, 0x800		; enable MTRR
+	mov ecx, 0x2FF
 	wrmsr
 
 	jmp .done
@@ -413,7 +413,7 @@ enable_mtrr_framebuffer:
 .done:
 	ret
 
-.debug_msg			db "pmm: MTRR is available, enabling write-combine for VESA framebuffer...",10,0
+.debug_msg			db "pmm: MTRR is available, enabling write-combine for framebuffer...",10,0
 .debug_msg2			db "pmm: MTRR is not available...",10,0
 .debug_msg3			db "pmm: MTRR is available, but write-combining is not..",10,0
 
