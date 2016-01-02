@@ -21,6 +21,7 @@
 ; hex_word_to_string
 ; hex_dword_to_string
 ; int_to_string
+; float_to_string
 
 use32
 
@@ -373,3 +374,18 @@ int_to_string:
 
 .string:		times 11 db 0
 .counter		db 0
+
+; float_to_string:
+; Converts a single-precision floating point number to an ASCIIZ string
+; In\	EAX = Number
+; Out\	ESI = Pointer to string
+
+float_to_string:
+	
+
+.string:		times 48 db 0
+.number			dd 0
+
+
+
+

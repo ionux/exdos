@@ -17,6 +17,11 @@
 ; is_number_multiple
 ; round
 ; round_forward
+; float_add
+; float_sub
+; float_mul
+; float_div
+; power
 
 use32
 
@@ -243,4 +248,256 @@ round_forward:
 .number1		dd 0
 .number2		dd 0
 
+; float_add:
+; Adds two floating point numbers
+; In\	EDX:EAX = Number 1
+; In\	ECX:EBX = Number 2
+; Out\	EDX:EAX = Result
+
+float_add:
+	pusha
+	mov dword[.number1], eax
+	mov dword[.number1+4], edx
+	mov dword[.number2], ebx
+	mov dword[.number2+4], ecx
+
+	finit				; clear all registers
+	fwait
+
+	fld qword[.number1]
+	fld qword[.number2]
+
+	fadd st0, st1
+	fwait
+	fst qword[.number1]
+
+	popa
+	mov eax, dword[.number1]
+	mov edx, dword[.number1+4]
+	ret
+
+.number1			dq 0
+.number2			dq 0
+
+; float_sub:
+; Subtracts two floating point numbers
+; In\	EDX:EAX = Number 1
+; In\	ECX:EBX = Number 2
+; Out\	EDX:EAX = Result
+
+float_sub:
+	pusha
+	mov dword[.number1], eax
+	mov dword[.number1+4], edx
+	mov dword[.number2], ebx
+	mov dword[.number2+4], ecx
+
+	finit				; clear all registers
+	fwait
+
+	fld qword[.number1]
+	fld qword[.number2]
+
+	fsub st0, st1
+	fwait
+	fst qword[.number1]
+
+	popa
+	mov eax, dword[.number1]
+	mov edx, dword[.number1+4]
+	ret
+
+.number1			dq 0
+.number2			dq 0
+
+; float_mul:
+; Multiplies two floating point numbers
+; In\	EDX:EAX = Number 1
+; In\	ECX:EBX = Number 2
+; Out\	EDX:EAX = Result
+
+float_mul:
+	pusha
+	mov dword[.number1], eax
+	mov dword[.number1+4], edx
+	mov dword[.number2], ebx
+	mov dword[.number2+4], ecx
+
+	finit				; clear all registers
+	fwait
+
+	fld qword[.number1]
+	fld qword[.number2]
+
+	fmul st0, st1
+	fwait
+	fst qword[.number1]
+
+	popa
+	mov eax, dword[.number1]
+	mov edx, dword[.number1+4]
+	ret
+
+.number1			dq 0
+.number2			dq 0
+
+; float_div:
+; Divides two floating point numbers
+; In\	EDX:EAX = Number 1
+; In\	ECX:EBX = Number 2
+; Out\	EDX:EAX = Result
+
+float_div:
+	pusha
+	mov dword[.number1], eax
+	mov dword[.number1+4], edx
+	mov dword[.number2], ebx
+	mov dword[.number2+4], ecx
+
+	finit				; clear all registers
+	fwait
+
+	fld qword[.number1]
+	;fld qword[.number2]
+
+	fdiv qword[.number2]
+	fwait
+	fst qword[.number1]
+
+	popa
+	mov eax, dword[.number1]
+	mov edx, dword[.number1+4]
+	ret
+
+.number1			dq 0
+.number2			dq 0
+
+; int_to_float:
+; Converts an integer to a double-precision floating point
+; In\	EDX = Integer
+; Out\	EDX:EAX = Floating point number
+
+int_to_float:
+	finit			; clear FPU registers
+	fwait
+
+	mov [.number], edx
+	fild dword[.number]
+	fst qword[.result]
+
+	mov eax, dword[.result]
+	mov edx, dword[.result+4]
+	ret
+
+.number				dd 0
+.result				dq 0
+
+; float_to_int:
+; Converts a double-precision floating point to an integer
+; In\	ECX:EBX = Floating point number
+; Out\	EAX = Integer
+
+float_to_int:
+	finit
+	fwait
+
+	mov dword[.number+4], ecx
+	mov dword[.number], ebx
+
+	fld qword[.number]
+	fist dword[.result]
+	mov eax, [.result]
+	ret
+
+.number				dq 0
+.result				dd 0
+
+; power:
+; Raises a number to a power
+; In\	EAX = Base (integer)
+; In\	EBX = Power (integer)
+; Out\	EDX:EAX = Result in floating point
+
+power:
+	mov [.base], eax
+	mov [.power], ebx
+
+	; If the base is negative, make it positive because it won't have any difference anyway
+	test dword[.base], 0x80000000
+	jnz .base_negative
+
+	jmp .start
+
+.base_negative:
+	not dword[.base]		; change to positive
+	inc dword[.base]
+
+.start:
+	; test if power is negative...
+	test dword[.power], 0x80000000
+	jnz .power_negative
+
+	mov edx, [.base]
+	call int_to_float
+
+	mov dword[.base2], eax
+	mov dword[.base2+4], edx
+
+	mov edx, dword[.base2+4]
+	mov eax, dword[.base2]
+	mov ecx, dword[.base2+4]
+	mov ebx, dword[.base2]
+	mov edi, [.power]
+	dec edi
+
+.positive_loop:
+	call float_mul
+	dec edi
+	cmp edi, 0
+	jne .positive_loop
+
+	ret
+
+.power_negative:
+	not dword[.power]
+
+	mov edx, [.base]
+	call int_to_float
+
+	mov dword[.base2], eax
+	mov dword[.base2+4], edx
+
+	mov edx, dword[.base2+4]
+	mov eax, dword[.base2]
+	mov ecx, dword[.base2+4]
+	mov ebx, dword[.base2]
+	mov edi, [.power]
+
+.negative_loop:
+	call float_mul
+	dec edi
+	cmp edi, 0
+	jne .negative_loop
+
+	mov dword[.result], eax
+	mov dword[.result+4], edx
+
+	mov edx, 1
+	call int_to_float
+
+	mov ecx, dword[.result+4]
+	mov ebx, dword[.result]
+	;xchg ecx, edx
+	;xchg ebx, eax
+	call float_div
+
+	ret
+
+.base			dd 0
+.power			dd 0
+
+.base2			dq 0
+.power2			dq 0
+
+.result			dq 0
 
