@@ -3,7 +3,7 @@
 ;;									;;
 ;; ExDOS -- Extensible Disk Operating System				;;
 ;; Version 0.1 pre alpha						;;
-;; Copyright (C) 2015 by Omar Mohammad, all rights reserved.		;;
+;; Copyright (C) 2015-2016 by Omar Mohammad, all rights reserved.	;;
 ;;									;;
 ;; kernel/kernel.asm							;;
 ;; ExDOS Kernel Entry Point						;;
@@ -26,7 +26,7 @@ jmp os_api
 
 use16
 
-define TODAY "Tuesday, 15th September, 2015"
+define TODAY "Saturday, 2nd January, 2016"
 
 _kernel_version			db "ExDOS v0.1.0 pre-alpha built ", TODAY, 0
 _crlf				db 13,10,0
@@ -341,15 +341,6 @@ use32
 	sti
 
 	;call run_v8086				; for debugging...
-
-	mov ax, 5
-	mov bx, 5
-	mov cx, 30
-	mov dx, 5
-	call draw_line
-
-	cli
-	hlt
 
 	mov esi, init_filename
 	call execute_program

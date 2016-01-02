@@ -322,6 +322,7 @@ put_pixel:
 	mov eax, [.color]
 	stosd				; 32-bit value
 
+	call redraw_screen
 	popa
 	ret
 
@@ -1709,9 +1710,11 @@ display_bitmap_24bpp:
 ; Draws a line
 ; In\	AX/BX = X/Y #1
 ; In\	CX/DX = X/Y #2
+; In\	ESI = Color
 ; Out\	Nothing
 
 draw_line:
+	mov [.color], esi
 	cmp ax, cx
 	jg .x1_bigger
 
@@ -1742,7 +1745,7 @@ draw_line:
 	mov [.dx], eax
 
 	movzx eax, [.y2]
-	movzx ebx, [.y2]
+	movzx ebx, [.y1]
 	sub eax, ebx
 	mov [.dy], eax
 
@@ -1750,36 +1753,50 @@ draw_line:
 	mov [.x], eax
 
 .loop:
-	mov eax, [.x2]
+	movzx eax, [.x2]
 	cmp eax, [.x]
-	jle .done
+	jl .done
+
+	;  y = y1 + dy * (x - x1) / dx
 
 	movzx eax, [.y1]
-	mov ebx, [.dy]
-	add eax, ebx
-	push eax
-
-	mov eax, [.x]
-	movzx ebx, [.x1]
-	sub eax, ebx
-	mov ebx, eax
-	pop eax
-
+	add eax, [.dy]
+	mov ebx, [.x]
+	movzx ecx, [.x1]
+	sub ebx, ecx
 	mul ebx
 
 	mov ebx, [.dx]
 	mov edx, 0
 	div ebx
 
-	mov ecx, eax
-	mov ebx, [.x]
-	mov edx, 0xFFFFFF
-	call put_pixel
+	mov ebx, eax
+	add bx, word[.y1]
+	mov eax, [.x]
+	call get_pixel_offset
 
+	cmp [screen.bpp], 32
+	je .32bpp
+
+.24bpp:
+	mov eax, [.color]
+	stosw
+	shr eax, 16
+	stosb
+	jmp .continue_loop
+
+.32bpp:
+	mov eax, [.color]
+	stosd
+
+.continue_loop:
 	inc [.x]
 	jmp .loop
 
 .done:
+	movzx eax, [.y1]
+	mov [dirty_line], eax
+	call redraw_screen
 	ret
 
 .x1			dw 0
@@ -1790,6 +1807,6 @@ draw_line:
 .dy			dd 0
 .x			dd 0
 .y			dd 0
-
+.color			dd 0
 
 
