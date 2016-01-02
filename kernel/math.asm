@@ -21,6 +21,8 @@
 ; float_sub
 ; float_mul
 ; float_div
+; int_to_float
+; float_to_int
 ; power
 
 use32

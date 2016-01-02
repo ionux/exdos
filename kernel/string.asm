@@ -376,12 +376,12 @@ int_to_string:
 .counter		db 0
 
 ; float_to_string:
-; Converts a single-precision floating point number to an ASCIIZ string
-; In\	EAX = Number
+; Converts a double-precision floating point number to an ASCIIZ string
+; In\	EDX:EAX = Number
 ; Out\	ESI = Pointer to string
 
 float_to_string:
-	
+	ret			; for now..
 
 .string:		times 48 db 0
 .number			dd 0
