@@ -39,6 +39,7 @@
 ; draw_image
 ; display_bitmap_32bpp
 ; display_bitmap_24bpp
+; draw_line
 
 use32
 
@@ -1704,7 +1705,91 @@ display_bitmap_24bpp:
 .size			dd 0
 .entry			dd 0
 
+; draw_line:
+; Draws a line
+; In\	AX/BX = X/Y #1
+; In\	CX/DX = X/Y #2
+; Out\	Nothing
 
+draw_line:
+	cmp ax, cx
+	jg .x1_bigger
+
+	mov [.x2], cx
+	mov [.x1], ax
+	jmp .check_y
+
+.x1_bigger:
+	mov [.x2], ax
+	mov [.x1], cx
+
+.check_y:
+	cmp bx, dx
+	jg .y1_bigger
+
+	mov [.y2], dx
+	mov [.y1], bx
+	jmp .start
+
+.y1_bigger:
+	mov [.y2], bx
+	mov [.y1], dx
+
+.start:
+	movzx eax, [.x2]
+	movzx ebx, [.x1]
+	sub eax, ebx
+	mov [.dx], eax
+
+	movzx eax, [.y2]
+	movzx ebx, [.y2]
+	sub eax, ebx
+	mov [.dy], eax
+
+	movzx eax, [.x1]
+	mov [.x], eax
+
+.loop:
+	mov eax, [.x2]
+	cmp eax, [.x]
+	jle .done
+
+	movzx eax, [.y1]
+	mov ebx, [.dy]
+	add eax, ebx
+	push eax
+
+	mov eax, [.x]
+	movzx ebx, [.x1]
+	sub eax, ebx
+	mov ebx, eax
+	pop eax
+
+	mul ebx
+
+	mov ebx, [.dx]
+	mov edx, 0
+	div ebx
+
+	mov ecx, eax
+	mov ebx, [.x]
+	mov edx, 0xFFFFFF
+	call put_pixel
+
+	inc [.x]
+	jmp .loop
+
+.done:
+	ret
+
+.x1			dw 0
+.x2			dw 0
+.y1			dw 0
+.y2			dw 0
+.dx			dd 0
+.dy			dd 0
+.x			dd 0
+.y			dd 0
 
 
 

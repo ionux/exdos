@@ -342,6 +342,15 @@ use32
 
 	;call run_v8086				; for debugging...
 
+	mov ax, 5
+	mov bx, 5
+	mov cx, 30
+	mov dx, 5
+	call draw_line
+
+	cli
+	hlt
+
 	mov esi, init_filename
 	call execute_program
 	jmp panic_no_processes
